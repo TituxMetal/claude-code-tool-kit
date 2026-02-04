@@ -15,6 +15,7 @@ readonly VERSION="1.0.0"
 readonly CLAUDE_DIR="${HOME}/.claude"
 readonly SKILLS_DIR="${CLAUDE_DIR}/skills"
 readonly COMMANDS_DIR="${CLAUDE_DIR}/commands"
+readonly AGENTS_DIR="${CLAUDE_DIR}/agents"
 
 # Color codes
 readonly COLOR_RED='\033[0;31m'
@@ -75,7 +76,7 @@ confirmAction() {
 # -----------------------------------------------------------------------------
 
 validateSourceFiles() {
-  local requiredDirs=("skills" "commands")
+  local requiredDirs=("skills" "commands" "agents")
 
   for dir in "${requiredDirs[@]}"; do
     [[ -d "${SCRIPT_DIR}/${dir}" ]] || {
@@ -218,6 +219,23 @@ installCommands() {
   return 0
 }
 
+installAgents() {
+  printInfo "Installing agents..."
+
+  local count=0
+  for agentFile in "${SCRIPT_DIR}/agents"/*.md; do
+    [[ -f "$agentFile" ]] || continue
+    local filename
+    filename=$(basename "$agentFile")
+    copyFileWithConfirmation "$agentFile" "${AGENTS_DIR}/${filename}"
+    ((count++))
+  done
+
+  printInfo "Installed ${count} agents"
+  echo
+  return 0
+}
+
 installClaudeMd() {
   printInfo "Installing CLAUDE.md..."
   copyFileWithConfirmation "${SCRIPT_DIR}/CLAUDE.md" "${CLAUDE_DIR}/CLAUDE.md"
@@ -252,6 +270,16 @@ validateInstallation() {
     printSuccess "${cmdCount} commands installed"
   } || {
     printWarning "Some commands may not have been installed (found ${cmdCount})"
+  }
+
+  # Check agents
+  local agentCount
+  agentCount=$(find "${AGENTS_DIR}" -name "*.md" -type f 2>/dev/null | wc -l)
+
+  [[ $agentCount -ge 3 ]] && {
+    printSuccess "${agentCount} agents installed"
+  } || {
+    printWarning "Some agents may not have been installed (found ${agentCount})"
   }
 
   # Check CLAUDE.md
@@ -311,6 +339,13 @@ declare -a commandsToRemove=(
   "start.md"
 )
 
+# Agents to remove
+declare -a agentsToRemove=(
+  "coaching-guide.md"
+  "coaching-review.md"
+  "coaching-scaffold.md"
+)
+
 removedCount=0
 
 for skill in "${skillsToRemove[@]}"; do
@@ -322,6 +357,12 @@ done
 for cmd in "${commandsToRemove[@]}"; do
   [[ -f "${HOME}/.claude/commands/${cmd}" ]] || continue
   rm -f "${HOME}/.claude/commands/${cmd}"
+  ((removedCount++))
+done
+
+for agent in "${agentsToRemove[@]}"; do
+  [[ -f "${HOME}/.claude/agents/${agent}" ]] || continue
+  rm -f "${HOME}/.claude/agents/${agent}"
   ((removedCount++))
 done
 
@@ -366,6 +407,7 @@ showSuccessMessage() {
   echo "Installed:"
   echo "  - Skills: ${SKILLS_DIR}/"
   echo "  - Commands: ${COMMANDS_DIR}/"
+  echo "  - Agents: ${AGENTS_DIR}/"
   echo "  - Config: ${CLAUDE_DIR}/CLAUDE.md"
   echo
   showUsage
@@ -391,7 +433,7 @@ showFailureMessage() {
 createDirectoryStructure() {
   printInfo "Creating directories..."
 
-  local dirs=("$CLAUDE_DIR" "$SKILLS_DIR" "$COMMANDS_DIR")
+  local dirs=("$CLAUDE_DIR" "$SKILLS_DIR" "$COMMANDS_DIR" "$AGENTS_DIR")
 
   for dir in "${dirs[@]}"; do
     createDirectory "$dir" || return 1
@@ -414,6 +456,7 @@ main() {
   # Install components
   installSkills || exit 1
   installCommands || exit 1
+  installAgents || exit 1
   installClaudeMd || exit 1
 
   # Validate installation
