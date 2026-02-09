@@ -16,6 +16,12 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 │   ├── coaching-guide.md
 │   ├── coaching-review.md
 │   └── coaching-scaffold.md
+├── hooks/                 # Claude Code hooks (injected into settings.json)
+│   ├── hooks-config.json
+│   └── prompts/
+│       ├── commit-validator.txt
+│       ├── task-checker.txt
+│       └── code-guardian.txt
 └── skills/                # Auto-loaded contextual skills
     ├── backend-architecture/
     ├── coaching/
@@ -55,6 +61,18 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 | `coaching-guide`    | Analyzes context and provides guidance with examples  |
 | `coaching-review`   | Code review before commit (logic, types, consistency) |
 
+## Hooks
+
+Hooks are injected into `~/.claude/settings.json` at install time (requires `jq`).
+
+| Hook                | Event              | Type   | Purpose                                                  |
+| ------------------- | ------------------ | ------ | -------------------------------------------------------- |
+| `commit-validator`  | PreToolUse (Bash)  | prompt | Validates git commit format and rules                    |
+| `task-checker`      | Stop               | prompt | Verifies Claude completed all tasks before stopping      |
+| `code-guardian`     | Stop               | agent  | Reviews modified code against style rules                |
+
+Prompt files are in `hooks/prompts/` and can be edited directly. Run `./install.sh` again to apply changes.
+
 ## Installation
 
 ```bash
@@ -66,6 +84,7 @@ The script will:
 - Copy skills to `~/.claude/skills/`
 - Copy commands to `~/.claude/commands/`
 - Copy agents to `~/.claude/agents/`
+- Inject hooks into `~/.claude/settings.json` (requires `jq`)
 - Copy CLAUDE.md to `~/.claude/`
 - Ask before overwriting existing files
 - Create an uninstall script at `~/.claude/uninstall-tool-kit.sh`

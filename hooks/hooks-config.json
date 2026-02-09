@@ -1,0 +1,37 @@
+{
+  "PreToolUse": [
+    {
+      "matcher": "Bash",
+      "hooks": [
+        {
+          "type": "prompt",
+          "promptFile": "prompts/commit-validator.txt",
+          "timeout": 10,
+          "statusMessage": "Ensuring all commits follow the required format and rules"
+        }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "hooks": [
+        {
+          "type": "prompt",
+          "promptFile": "prompts/task-checker.txt",
+          "timeout": 30,
+          "statusMessage": "Task checker is verifying if all work is complete and correct before allowing the session to end"
+        }
+      ]
+    },
+    {
+      "hooks": [
+        {
+          "type": "agent",
+          "promptFile": "prompts/code-guardian.txt",
+          "timeout": 60,
+          "statusMessage": "Rule Guardian is performing a final code review check against all rules before allowing the session to end"
+        }
+      ]
+    }
+  ]
+}

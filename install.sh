@@ -76,7 +76,7 @@ confirmAction() {
 # -----------------------------------------------------------------------------
 
 validateSourceFiles() {
-  local requiredDirs=("skills" "commands" "agents")
+  local requiredDirs=("skills" "commands" "agents" "hooks")
 
   for dir in "${requiredDirs[@]}"; do
     [[ -d "${SCRIPT_DIR}/${dir}" ]] || {
@@ -243,6 +243,82 @@ installClaudeMd() {
   return 0
 }
 
+buildHooksJson() {
+  local configFile="$1"
+  local hooksDir
+  hooksDir=$(dirname "$configFile")
+
+  local result
+  result=$(cat "$configFile")
+
+  # Extract all unique promptFile paths from the config
+  local promptFiles
+  promptFiles=$(echo "$result" | jq -r '.. | .promptFile? // empty' | sort -u)
+
+  # For each prompt file, read content and inject into JSON
+  while IFS= read -r promptFile; do
+    [[ -z "$promptFile" ]] && continue
+    local fullPath="${hooksDir}/${promptFile}"
+
+    [[ -f "$fullPath" ]] || {
+      printError "Prompt file not found: ${fullPath}"
+      return 1
+    }
+
+    local content
+    content=$(cat "$fullPath")
+
+    # Replace promptFile reference with inline prompt content
+    result=$(echo "$result" | jq \
+      --arg file "$promptFile" \
+      --arg content "$content" \
+      'walk(
+        if type == "object" and .promptFile == $file then
+          del(.promptFile) + {prompt: $content}
+        else .
+        end
+      )')
+  done <<< "$promptFiles"
+
+  echo "$result"
+}
+
+installHooks() {
+  printInfo "Installing hooks..."
+
+  command -v jq &>/dev/null || {
+    printWarning "jq not found — skipping hooks installation"
+    printWarning "Install jq to enable hooks: https://jqlang.github.io/jq/download/"
+    echo
+    return 0
+  }
+
+  local configFile="${SCRIPT_DIR}/hooks/hooks-config.json"
+  local settingsFile="${CLAUDE_DIR}/settings.json"
+
+  [[ -f "$configFile" ]] || {
+    printError "hooks-config.json not found: ${configFile}"
+    return 1
+  }
+
+  local hooksJson
+  hooksJson=$(buildHooksJson "$configFile") || return 1
+
+  local existingSettings="{}"
+  [[ -f "$settingsFile" ]] && existingSettings=$(cat "$settingsFile")
+
+  echo "$existingSettings" | jq --argjson hooks "$hooksJson" '. + {hooks: $hooks}' > "${settingsFile}.tmp" || {
+    printError "Failed to merge hooks into settings.json"
+    rm -f "${settingsFile}.tmp"
+    return 1
+  }
+
+  mv "${settingsFile}.tmp" "$settingsFile"
+  printSuccess "Hooks installed into settings.json"
+  echo
+  return 0
+}
+
 # -----------------------------------------------------------------------------
 # Validation Functions
 # -----------------------------------------------------------------------------
@@ -280,6 +356,17 @@ validateInstallation() {
     printSuccess "${agentCount} agents installed"
   } || {
     printWarning "Some agents may not have been installed (found ${agentCount})"
+  }
+
+  # Check hooks
+  command -v jq &>/dev/null && [[ -f "${CLAUDE_DIR}/settings.json" ]] && {
+    local hasHooks
+    hasHooks=$(jq 'has("hooks")' "${CLAUDE_DIR}/settings.json" 2>/dev/null)
+    [[ "$hasHooks" == "true" ]] && {
+      printSuccess "Hooks installed in settings.json"
+    } || {
+      printWarning "Hooks not found in settings.json"
+    }
   }
 
   # Check CLAUDE.md
@@ -366,6 +453,13 @@ for agent in "${agentsToRemove[@]}"; do
   ((removedCount++))
 done
 
+# Remove hooks from settings.json
+command -v jq &>/dev/null && [[ -f "${HOME}/.claude/settings.json" ]] && {
+  jq 'del(.hooks)' "${HOME}/.claude/settings.json" > "${HOME}/.claude/settings.json.tmp"
+  mv "${HOME}/.claude/settings.json.tmp" "${HOME}/.claude/settings.json"
+  echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Removed hooks from settings.json"
+}
+
 echo -e "${COLOR_GREEN}Removed ${removedCount} items${COLOR_RESET}"
 echo "Claude Code Tool Kit has been uninstalled."
 echo "Note: CLAUDE.md was NOT removed (contains your personal config)."
@@ -408,6 +502,7 @@ showSuccessMessage() {
   echo "  - Skills: ${SKILLS_DIR}/"
   echo "  - Commands: ${COMMANDS_DIR}/"
   echo "  - Agents: ${AGENTS_DIR}/"
+  echo "  - Hooks: ${CLAUDE_DIR}/settings.json"
   echo "  - Config: ${CLAUDE_DIR}/CLAUDE.md"
   echo
   showUsage
@@ -457,6 +552,7 @@ main() {
   installSkills || exit 1
   installCommands || exit 1
   installAgents || exit 1
+  installHooks || exit 1
   installClaudeMd || exit 1
 
   # Validate installation
