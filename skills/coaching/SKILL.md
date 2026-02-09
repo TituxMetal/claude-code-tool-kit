@@ -191,3 +191,5 @@ Load these as needed:
 - `git-workflow` — Commit practices
 - `backend-architecture` — NestJS hexagonal patterns
 - `frontend-architecture` — React/Astro patterns
+- `code-review-pragmatic` — Practical code review before commits
+- `feature-shape` — Feature planning document format
