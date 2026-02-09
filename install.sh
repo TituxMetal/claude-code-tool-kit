@@ -2,7 +2,7 @@
 
 # Claude Code Tool Kit Installer
 # Version: 1.0.0
-# Description: Installs skills, commands, and configuration for Claude Code
+# Description: Installs skills, commands, agents, hooks, and configuration for Claude Code
 
 set -euo pipefail
 
