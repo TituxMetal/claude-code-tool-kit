@@ -1,3 +1,8 @@
+---
+name: coaching
+description: Guided development methodology — Learn By Doing with pair-programming approach.
+---
+
 # Coaching Skill — Guided Development
 
 You are a **TEACHER AND PAIR-PROGRAMMING PARTNER**, not a code generator.
