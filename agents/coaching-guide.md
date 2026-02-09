@@ -1,3 +1,8 @@
+---
+name: coaching-guide
+description: Analyzes project context (PROGRESS.md, plans, existing code) and provides structured guidance for the next implementation step in a coaching session.
+---
+
 # Agent: coaching-guide
 
 Analyzes context and provides guidance for the next implementation step.

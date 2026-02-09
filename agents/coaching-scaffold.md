@@ -1,3 +1,8 @@
+---
+name: coaching-scaffold
+description: Creates atomic file pairs (implementation + test) with placeholder stubs and TODO(human) markers for the developer to implement.
+---
+
 # Agent: coaching-scaffold
 
 Creates atomic file pairs (implementation + test) with placeholders for the developer to implement.

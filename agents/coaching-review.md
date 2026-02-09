@@ -1,3 +1,8 @@
+---
+name: coaching-review
+description: Reviews developer implementations before commit — runs automated checks, performs code review against codebase patterns, and reports findings with severity classification.
+---
+
 # Agent: coaching-review
 
 Reviews developer's implementation before commit — catches what a senior developer would catch.
