@@ -219,7 +219,7 @@ bun run format:check
 
 ## Hooks
 
-Hooks are injected into `~/.claude/settings.json` at install time from `hooks/hooks-config.json`.
+Hooks are injected into `~/.claude/settings.json` at install time from `hooks/hooks-config.json` (requires `jq`; hook installation is skipped if `jq` is not available).
 
 | Hook | Event | Type | Purpose |
 | ---- | ----- | ---- | ------- |
