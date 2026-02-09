@@ -175,7 +175,7 @@ VERY IMPORTANT **ALWAYS READ CAREFULLY THESE SKILLS**
 | `git-workflow`         | Branch strategy, atomic commits            |
 | `coaching`             | Learn By Doing methodology                 |
 | `feature-shape`        | Feature planning document format           |
-| `code-review-pragmatic`| Practical code review methodology          |
+| `code-review-pragmatic` | Practical code review methodology         |
 
 ---
 
