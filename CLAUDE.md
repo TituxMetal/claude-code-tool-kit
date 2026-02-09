@@ -218,6 +218,18 @@ bun run format:check
 
 ---
 
+## Hooks
+
+Hooks are injected into `~/.claude/settings.json` at install time from `hooks/hooks-config.json`.
+
+| Hook | Event | Type | Purpose |
+| ---- | ----- | ---- | ------- |
+| `commit-validator` | PreToolUse (Bash) | prompt | Validates commit message format and rules |
+| `task-checker` | Stop | prompt | Verifies all work is complete before session end |
+| `code-guardian` | Stop | agent | Final code review against style rules |
+
+---
+
 ## What NOT To Do
 
 - **NEVER BE LAZY** — Always create both files (impl + test), always review before commit
