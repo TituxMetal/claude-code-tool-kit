@@ -1,3 +1,8 @@
+---
+name: backend-architecture
+description: Hexagonal/Clean Architecture patterns for NestJS backend applications.
+---
+
 # Backend Architecture Skill
 
 Hexagonal/Clean Architecture patterns for NestJS backend applications.

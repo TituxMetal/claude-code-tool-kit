@@ -1,3 +1,8 @@
+---
+name: code-style
+description: Rules for writing code in projects.
+---
+
 # Code Style Skill
 
 Rules for writing code in projects.

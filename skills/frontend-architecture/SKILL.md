@@ -1,3 +1,8 @@
+---
+name: frontend-architecture
+description: Feature-based architecture patterns for React/Astro frontend applications.
+---
+
 # Frontend Architecture Skill
 
 Feature-based architecture patterns for React/Astro frontend applications.
