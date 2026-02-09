@@ -46,7 +46,7 @@ Before reviewing any code, understand the project structure.
 
 </step>
 
-<step number="2" subagent="code-reviewer" name="review_all_code">
+<step number="2" subagent="feature-dev:code-reviewer" name="review_all_code">
 
 ### Step 2: Code Review
 
