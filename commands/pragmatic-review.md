@@ -1,9 +1,7 @@
 ---
 description: Pragmatic Code Review
-globs:
 alwaysApply: false
 version: 2.0
-encoding: UTF-8
 ---
 
 # Pragmatic Code Review Command
