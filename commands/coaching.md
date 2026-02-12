@@ -156,10 +156,12 @@ When developer says they're done, use the **coaching-review** agent behavior.
 At logical stopping points (end of phase, several units complete, developer requests), analyze all completed units and propose a **commit sequence**.
 
 <commit_strategy>
-Rules (from git-workflow skill):
+From git-workflow skill:
 - One logical change per commit (component + its test + its barrel export = one commit)
-- Dependency order: shared/utility code BEFORE units that import them
 - Never mix commit types: feat separate from refactor separate from docs
+
+Coaching-specific checkpoint rules:
+- Dependency order: shared/utility code BEFORE units that import them
 - PROGRESS.md is ALWAYS its own docs(scope) commit, never mixed with code
 - Propose the FULL commit sequence with messages before executing any commit
 </commit_strategy>
@@ -180,12 +182,14 @@ Proposed commit sequence:
 3. docs([scope]): update PROGRESS.md — files: PROGRESS.md
 
 Ready to commit this sequence?
+
+Next up: [brief preview of upcoming unit or phase]
 ```
 </output_format>
 
 <instructions>
   ACTION: Propose full atomic commit sequence at logical checkpoints
-  FOLLOW: git-workflow skill rules for commit granularity and ordering
+  FOLLOW: git-workflow skill for commit granularity and message format; apply dependency ordering as coaching-specific rule
   WAIT: For developer approval before executing any commit
   UPDATE: PROGRESS.md checkboxes as a separate docs commit after code commits
   PREVIEW: What comes next after the checkpoint
