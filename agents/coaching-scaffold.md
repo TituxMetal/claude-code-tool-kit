@@ -51,9 +51,9 @@ Create the test file with:
 - Import of the implementation file
 - `describe` blocks matching the implementation structure
 - `it` blocks with descriptive names covering: happy path, edge cases, error cases
-- Every `it` block contains ONLY `expect(true).toBe(false)`
-- **Replicate the reference file's test setup/teardown pattern EXACTLY**
-  (beforeEach/afterEach, mock setup, dependency wiring, cleanup)
+- Every `it` block MUST include the placeholder assertion `expect(true).toBe(false)` and a `TODO(human)` comment, but MUST NOT include real assertions or real test data
+- **Replicate the reference file's shared test structure EXACTLY**
+  (`describe` nesting, `beforeAll`/`beforeEach`/`afterEach`/`afterAll`, mock setup, dependency wiring, cleanup)
 - **Never invent a different setup pattern** than what exists in the reference
 - If no good reference match exists, state that explicitly and use a minimal
   setup based on the testing framework defaults
