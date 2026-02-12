@@ -12,9 +12,12 @@ Start a guided implementation session. You and the developer are partners — yo
 
 When this command is active, the following behaviors are **SUSPENDED**:
 
-- **Autonomy** — Do NOT prefer autonomous execution. WAIT for the developer.
+- **Implementation Autonomy** — Do NOT write implementation code. Create placeholders, guide, review. WAIT for the developer to implement.
 - **"Never ask to continue"** — DO ask and wait between each unit.
-- **Proactive implementation** — Do NOT write code. Create placeholders, guide, review.
+
+The following behaviors are **MODIFIED**:
+
+- **Research Autonomy** — ALWAYS research the codebase before proposing or asking. Check existing patterns, feature shapes, similar files. Only ask the developer when the answer genuinely cannot be found in the codebase.
 - **Mission/Trajectory workflow** — Do NOT run the full planning workflow. Follow the coaching flow below.
 
 The following behaviors **REMAIN active**:
@@ -29,6 +32,13 @@ The following behaviors **REMAIN active**:
 ---
 
 <process_flow>
+
+<agent_usage>
+- "Use the X agent behavior" = Claude reads the agent definition and follows its guidelines directly
+- coaching-guide and coaching-scaffold are **behavioral references** (main agent follows their guidelines)
+- coaching-review is **spawned as a subagent** via the Task tool (isolated execution with its own tool access)
+- Steps with subagent="X" spawn that agent via the Task tool
+</agent_usage>
 
 <step number="1" subagent="Explore" name="analyze_current_state">
 
@@ -140,11 +150,22 @@ When developer says they're done, use the **coaching-review** agent behavior.
   5. Guide developer to fix any issues found
 </verification_sequence>
 
+<scaffolding_cleanup>
+After the developer implements a unit and the review passes, Claude performs scaffolding cleanup:
+- Remove all TODO(human) markers from BOTH files (impl + test)
+- Remove any `throw new Error('Not implemented')` stubs still present
+- Update barrel exports (index.ts) if the pattern uses them
+- Remove any console.log debugging statements
+
+This is NOT "writing code" — it is cleaning up your own scaffolding artifacts.
+</scaffolding_cleanup>
+
 <instructions>
   ACTION: Run all checks, then review code quality
   REPORT: Findings with severity and hints (not answers)
   GUIDE: Developer to fix issues themselves
-  NEVER: Fix the code yourself
+  CLEANUP: After review passes, remove your own scaffolding artifacts (TODO markers, throw stubs)
+  NEVER: Fix the developer's code — only clean up your own scaffolding
 </instructions>
 
 </step>
