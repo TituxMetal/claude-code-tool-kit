@@ -174,7 +174,16 @@ This is NOT "writing code" — it is cleaning up your own scaffolding artifacts.
 
 ### Step 5: Checkpoint
 
-At logical stopping points (end of phase, several units complete, developer requests).
+At logical stopping points (end of phase, several units complete, developer requests), analyze all completed units and propose a **commit sequence**.
+
+<commit_strategy>
+Rules (from git-workflow skill):
+- One logical change per commit (component + its test + its barrel export = one commit)
+- Dependency order: shared/utility code BEFORE units that import them
+- Never mix commit types: feat separate from refactor separate from docs
+- PROGRESS.md is ALWAYS its own docs(scope) commit, never mixed with code
+- Propose the FULL commit sequence with messages before executing any commit
+</commit_strategy>
 
 <output_format>
 ```text
@@ -186,17 +195,21 @@ Completed:
 
 All checks pass: [yes/no]
 
-Ready to commit? Suggested message:
-[type]([scope]): [description]
+Proposed commit sequence:
+1. [type]([scope]): [description] — files: [list]
+2. [type]([scope]): [description] — files: [list]
+3. docs([scope]): update PROGRESS.md — files: PROGRESS.md
 
-Next up: [preview of next unit]
+Ready to commit this sequence?
 ```
 </output_format>
 
 <instructions>
-  ACTION: Prompt for commit at logical checkpoints
-  UPDATE: PROGRESS.md checkboxes after commit
-  PREVIEW: What comes next
+  ACTION: Propose full atomic commit sequence at logical checkpoints
+  FOLLOW: git-workflow skill rules for commit granularity and ordering
+  WAIT: For developer approval before executing any commit
+  UPDATE: PROGRESS.md checkboxes as a separate docs commit after code commits
+  PREVIEW: What comes next after the checkpoint
 </instructions>
 
 </step>
