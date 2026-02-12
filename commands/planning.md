@@ -87,7 +87,7 @@ Address any open questions from the Feature Shape before planning.
 Generate a detailed Implementation Plan following the established pattern.
 
 <plan_structure>
-```markdown
+~~~markdown
 # Feature NN: [Feature Name] — Implementation Plan
 
 ## Overview
@@ -233,7 +233,7 @@ apps/web/src/features/[feature]/
 |------|--------|
 | `apps/api/src/app.module.ts` | Import new module |
 | `apps/web/src/layouts/Main.astro` | Add navigation |
-```
+~~~
 </plan_structure>
 
 <phase_guidelines>
