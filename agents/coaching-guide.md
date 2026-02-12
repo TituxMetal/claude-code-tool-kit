@@ -37,6 +37,14 @@ Determine the next atomic unit to create:
 
 For the identified unit:
 - Find similar existing code in the codebase
+- **Before recommending a reference pattern, verify architectural match:**
+  - Does the reference file's architectural role match the target?
+    (presentational vs self-contained, stateless vs stateful, prop-driven vs internally managed)
+  - Does the reference file's form ownership match?
+    (receives form as prop vs owns useForm internally)
+  - Does the reference file's test setup match what the target will need?
+  - If no good match exists, state that explicitly and describe the target pattern from scratch
+    rather than pointing to a misleading reference
 - Extract relevant pattern snippets
 - Identify dependencies that must exist
 - Note any gotchas or special considerations
