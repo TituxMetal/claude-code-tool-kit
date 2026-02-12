@@ -52,6 +52,12 @@ Create the test file with:
 - `describe` blocks matching the implementation structure
 - `it` blocks with descriptive names covering: happy path, edge cases, error cases
 - Every `it` block contains ONLY `expect(true).toBe(false)`
+- **Replicate the reference file's test setup/teardown pattern EXACTLY**
+  (beforeEach, afterEach, cleanup pattern, document.body reset)
+- **Never invent a different setup pattern** than what exists in the reference
+- If the reference uses `beforeEach` with `cleanup()`, the placeholder must too
+- If no good reference match exists, state that explicitly and use a minimal
+  setup based on the testing framework defaults
 
 ```typescript
 describe('SomeClass', () => {
