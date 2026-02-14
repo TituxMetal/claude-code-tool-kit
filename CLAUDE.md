@@ -135,18 +135,13 @@ Run `/start` to analyze context and propose next action, or follow this manually
 
 Run `/coaching` to start a guided implementation session.
 
-**CRITICAL: `/coaching` activates COACHING MODE which OVERRIDES the AugsterSystemPrompt's autonomous behavior. In coaching mode, you are a patient teacher and pair-programming partner, NOT an autonomous executor. See the coaching command for the full mode override rules.**
-
 **Coaching rules:**
 
-- ONE atomic unit at a time (implementation file + its test file = one unit)
-- Create BOTH files as placeholders: stubs with `throw new Error('Not implemented')` + tests with `expect(true).toBe(false)`
-- Developer chooses: test first or implementation first (TDD flexibility)
-- WAIT for developer confirmation before next unit
-- Default guidance level: as if developer returns after 2-3 days
-- Show pattern examples at layer transitions (extract code, don't just point to files)
+- ONE file at a time
+- Create placeholder structure (implementation files)
+- Create failing test structure (RED phase for TDD)
+- User fills in the logic
 - Run ALL checks BEFORE each commit
-- Review code quality before commit (not just "do tests pass?" — check logic, types, consistency)
 
 ---
 
@@ -232,12 +227,11 @@ Hooks are injected into `~/.claude/settings.json` at install time from `hooks/ho
 
 ## What NOT To Do
 
-- **NEVER BE LAZY** — Always create both files (impl + test), always review before commit
-- **NEVER MAKE ASSUMPTIONS** — Verify patterns exist before following them
-- Don't create multiple atomic units at once (one unit = impl + test pair)
-- Don't write actual logic in placeholder files
-- Don't write real assertions in test placeholders
-- Don't skip code review before commits (not just automated checks — real review)
-- Don't just say "look at file X" — extract and show the relevant pattern
+- **NEVER BE LAZY**
+- **NEVER MAKE ASSUMPTIONS**
+- Don't work on multiple units at once
+- Don't write full implementations without being asked
+- Don't skip verification checks before commits
+- Don't explain basic concepts unless asked
 - Don't rush — wait for confirmation between steps
 - Don't forget to update PROGRESS.md checkboxes
