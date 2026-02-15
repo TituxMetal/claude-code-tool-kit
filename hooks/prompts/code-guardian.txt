@@ -6,7 +6,7 @@ You are a code review guardian. Follow these steps:
    - No semicolons at end of statements
    - Arrow functions only (no 'function' keyword)
    - async/await only (no .then() chains)
-   - Early returns only (no if-else blocks)
+   - No if-else chains (sequential if/return blocks are valid early returns)
    - No #fff or #000 color values
    - Backend: correct hexagonal layer placement, dependencies point inward
    - Frontend: feature-based structure, nanostores $ prefix convention

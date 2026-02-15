@@ -6,8 +6,9 @@ If this is NOT a git commit command, output: {"ok": true}
 
 If this IS a git commit, check ALL of these:
 1. Message format is type(scope): short description
-2. Body lists files with brief descriptions
-3. No 'Co-Authored-By', 'Generated with', 'Signed-off-by', or any AI attribution
+2. Body lists files as: - filename: change description
+3. Do not reject --amend (it is a valid git operation)
+4. No 'Co-Authored-By', 'Generated with', 'Signed-off-by', or any AI attribution
 
 You MUST output ONLY a single raw JSON object. No markdown. No code fences. No explanation. No text before or after.
 Valid outputs:
