@@ -12,13 +12,18 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 │   ├── coaching.md
 │   ├── planning.md
 │   ├── pragmatic-review.md
+│   ├── ship.md
 │   └── start.md
 ├── agents/                # Specialized agent behaviors
 │   ├── coaching-auditor.md
 │   ├── coaching-context.md
 │   ├── coaching-guide.md
 │   ├── coaching-review.md
-│   └── coaching-scaffold.md
+│   ├── coaching-scaffold.md
+│   ├── ship-planner.md
+│   ├── ship-progress.md
+│   ├── ship-scanner.md
+│   └── ship-verifier.md
 ├── hooks/                 # Claude Code hooks (injected into settings.json)
 │   ├── hooks-config.json
 │   └── prompts/
@@ -56,6 +61,7 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 | `/coaching`         | Start a guided implementation session                     |
 | `/planning`         | Create Implementation Plan from Feature Shape             |
 | `/pragmatic-review` | Pragmatic code review                                     |
+| `/ship`             | Ship code — scan, commit, push, PR                        |
 
 ## Agents
 
@@ -66,6 +72,10 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 | `coaching-scaffold` | Creates placeholder file pairs (impl + test)          |
 | `coaching-guide`    | Analyzes context and provides guidance with examples  |
 | `coaching-review`   | Code review before commit (logic, types, consistency) |
+| `ship-scanner`      | Scans changed files for convention violations         |
+| `ship-planner`      | Plans atomic commit sequence from diff                |
+| `ship-verifier`     | Runs all verification checks (test, typecheck, lint, format) |
+| `ship-progress`     | Proposes PROGRESS.md checkbox updates                 |
 
 ## Hooks
 
@@ -102,6 +112,7 @@ graph TB
             C3["⌘ coaching"]
             C4["⌘ pragmatic-review"]
             C5["⌘ coach"]
+            C6["⌘ ship"]
         end
 
         subgraph "Agents (behavior refs)"
@@ -110,6 +121,10 @@ graph TB
             A3[coaching-review]
             A4[coaching-context]
             A5[coaching-auditor]
+            A6[ship-scanner]
+            A7[ship-planner]
+            A8[ship-verifier]
+            A9[ship-progress]
         end
 
         subgraph "Hooks (auto-fired)"
@@ -134,6 +149,12 @@ graph TB
     C5 -->|"spawns"| A3
     C5 -->|"spawns"| A5
     C5 -->|"follows"| S5
+
+    C6 -->|"spawns"| A6
+    C6 -->|"spawns"| A7
+    C6 -->|"spawns"| A8
+    C6 -->|"spawns"| A9
+    C6 -->|"follows"| S4
 
     H1 -->|"enforces"| S4
     H3 -->|"enforces"| S3

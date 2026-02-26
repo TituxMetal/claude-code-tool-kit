@@ -342,7 +342,7 @@ validateInstallation() {
   local cmdCount
   cmdCount=$(find "${COMMANDS_DIR}" -name "*.md" -type f 2>/dev/null | wc -l)
 
-  [[ $cmdCount -ge 5 ]] && {
+  [[ $cmdCount -ge 6 ]] && {
     printSuccess "${cmdCount} commands installed"
   } || {
     printWarning "Some commands may not have been installed (found ${cmdCount})"
@@ -352,7 +352,7 @@ validateInstallation() {
   local agentCount
   agentCount=$(find "${AGENTS_DIR}" -name "*.md" -type f 2>/dev/null | wc -l)
 
-  [[ $agentCount -ge 5 ]] && {
+  [[ $agentCount -ge 9 ]] && {
     printSuccess "${agentCount} agents installed"
   } || {
     printWarning "Some agents may not have been installed (found ${agentCount})"
@@ -424,6 +424,7 @@ declare -a commandsToRemove=(
   "coaching.md"
   "planning.md"
   "pragmatic-review.md"
+  "ship.md"
   "start.md"
 )
 
@@ -434,6 +435,10 @@ declare -a agentsToRemove=(
   "coaching-guide.md"
   "coaching-review.md"
   "coaching-scaffold.md"
+  "ship-planner.md"
+  "ship-progress.md"
+  "ship-scanner.md"
+  "ship-verifier.md"
 )
 
 removedCount=0
@@ -492,6 +497,7 @@ Available commands in Claude Code:
   /coaching          - Start a guided implementation session
   /planning          - Create Implementation Plan from Feature Shape
   /pragmatic-review  - Pragmatic code review
+  /ship              - Ship code (scan, plan, verify, commit, push, PR)
 
 Skills are auto-loaded based on context.
 EOF
