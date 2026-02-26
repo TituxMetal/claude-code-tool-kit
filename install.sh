@@ -342,7 +342,7 @@ validateInstallation() {
   local cmdCount
   cmdCount=$(find "${COMMANDS_DIR}" -name "*.md" -type f 2>/dev/null | wc -l)
 
-  [[ $cmdCount -ge 4 ]] && {
+  [[ $cmdCount -ge 5 ]] && {
     printSuccess "${cmdCount} commands installed"
   } || {
     printWarning "Some commands may not have been installed (found ${cmdCount})"
@@ -352,7 +352,7 @@ validateInstallation() {
   local agentCount
   agentCount=$(find "${AGENTS_DIR}" -name "*.md" -type f 2>/dev/null | wc -l)
 
-  [[ $agentCount -ge 3 ]] && {
+  [[ $agentCount -ge 5 ]] && {
     printSuccess "${agentCount} agents installed"
   } || {
     printWarning "Some agents may not have been installed (found ${agentCount})"
@@ -420,6 +420,7 @@ declare -a skillsToRemove=(
 
 # Commands to remove
 declare -a commandsToRemove=(
+  "coach.md"
   "coaching.md"
   "planning.md"
   "pragmatic-review.md"
@@ -428,6 +429,8 @@ declare -a commandsToRemove=(
 
 # Agents to remove
 declare -a agentsToRemove=(
+  "coaching-auditor.md"
+  "coaching-context.md"
   "coaching-guide.md"
   "coaching-review.md"
   "coaching-scaffold.md"
@@ -485,6 +488,7 @@ showUsage() {
   cat << EOF
 Available commands in Claude Code:
   /start             - Analyze context and propose next action
+  /coach             - Autonomous coaching pipeline
   /coaching          - Start a guided implementation session
   /planning          - Create Implementation Plan from Feature Shape
   /pragmatic-review  - Pragmatic code review
