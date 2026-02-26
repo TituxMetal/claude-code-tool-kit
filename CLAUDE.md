@@ -154,6 +154,7 @@ Run `/coaching` to start a guided implementation session.
 | `/planning`        | Create Implementation Plan from Feature Shape |
 | `/coaching`        | Guided implementation session                |
 | `/pragmatic-review`| Code review                                  |
+| `/ship`            | Ship code — scan, commit, push, PR           |
 | `/commit`          | Create atomic commit                         |
 | `/commit-push-pr`  | Commit + push + create PR                    |
 
@@ -213,6 +214,10 @@ bun run format:check
 | `coaching-review` | Real code review before commit (logic, types, consistency) |
 | `coaching-context` | Gathers project context for coaching sessions |
 | `coaching-auditor` | Audits coaching responses against skill rules |
+| `ship-scanner`  | Scans changed files for convention violations |
+| `ship-planner`  | Plans atomic commit sequence from diff |
+| `ship-verifier` | Runs all verification checks (test, typecheck, lint, format) |
+| `ship-progress` | Proposes PROGRESS.md checkbox updates |
 
 ---
 
