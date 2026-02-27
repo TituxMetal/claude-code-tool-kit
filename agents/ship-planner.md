@@ -58,10 +58,30 @@ For each changed file, determine:
 
 ### Step 3: Group into Atomic Commits
 
+**CRITICAL CONSTRAINT: Each file MUST appear in exactly ONE commit.** A file that was modified for
+multiple purposes belongs to the commit with the primary/broadest change. Never try to split changes
+within a single file into separate commits.
+
+- **Group by files actually touched**, not by abstract logical units. If two logical units modify the
+  same files, they are ONE commit.
+- When a single file contains changes for multiple logical units (e.g., a Container with create,
+  edit, AND delete flows added), they ALL go in ONE commit because they are ONE file.
 - **Implementation + test + barrel export** of the same logical unit = one commit
 - **NEVER mix commit types** — `feat` and `refactor` go in separate commits
 - **Config/tooling changes** that support a feature go in a `chore` commit before the `feat`
 - **PROGRESS.md** is ALWAYS its own `docs()` commit — the LAST commit in the sequence
+- **When in doubt, fewer larger commits are better** than many small commits with file conflicts
+
+### Step 3b: Validate Grouping
+
+After grouping, **scan the commit plan to verify no file appears in more than one commit:**
+
+1. Build a set of all files across all planned commits
+2. Check for duplicates — any file appearing in 2+ commits is a violation
+3. If duplicates found: **merge those commits into one**, re-deriving the commit type from the
+   dominant change type (e.g., if merging a `feat` and a `refactor` that touch the same files,
+   use `feat` since it's the primary purpose)
+4. Re-validate after merging — repeat until no duplicates remain
 
 ### Step 4: Order by Dependency
 
@@ -125,5 +145,7 @@ COMMIT 2:
 - **NEVER** include AI attribution in commit messages
 - **NEVER** create empty commits (no files = no commit)
 - **NEVER** mix commit types in a single commit
+- **NEVER** place the same file in multiple commits — merge those commits instead
 - **NEVER** modify any files — this agent only plans, it does not execute
 - If only one logical change exists, produce a single commit (no need to split artificially)
+- When in doubt, fewer larger commits are better than many small commits with file conflicts
