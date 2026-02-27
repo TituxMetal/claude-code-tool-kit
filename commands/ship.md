@@ -136,7 +136,15 @@ Collect results, apply gates, and present the approval prompt.
      - ship-scanner STATUS: WARN → include warnings in approval prompt
      - ship-progress STATUS: NOT_FOUND → omit progress section from summary
 
+  3.5. If ship-progress STATUS: FOUND and proposed updates exist:
+       a. Apply the proposed checkbox changes to docs/PROGRESS.md NOW (edit the file in the working tree)
+       b. Verify ship-planner's commit plan includes a final docs() commit for PROGRESS.md
+       c. If ship-planner did NOT include a PROGRESS.md commit, append one to the plan:
+          `docs({scope}): update PROGRESS.md` with docs/PROGRESS.md as the only file
+
   4. Build SHIP SUMMARY (see output format below)
+     - The commit plan MUST show FULL commit messages with file lists — not just type/scope and file counts
+     - The user needs to review and approve the EXACT commits before any git command runs
 
   5. Present the summary and WAIT for user confirmation
      - User approves → proceed to Phase 3
@@ -181,8 +189,16 @@ Conventions: PASS ✓
 {End if}
 
 Commit Plan ({N} commits):
-  1. {type}({scope}): {description} — {file count} files
-  2. {type}({scope}): {description} — {file count} files
+
+  1. {type}({scope}): {description}
+     - {filename}: {change description}
+     - {filename}: {change description}
+     Files: {path/to/file1}, {path/to/file2}
+
+  2. {type}({scope}): {description}
+     - {filename}: {change description}
+     Files: {path/to/file1}
+
   ...
 
 {If progress updates found}
@@ -211,9 +227,9 @@ On user approval, execute the shipping sequence.
      b. Run `git commit` with the planner's message (use HEREDOC for multi-line messages)
      c. Verify commit succeeded before proceeding to next
 
-  2. If ship-progress proposed updates:
-     a. Apply the proposed checkbox changes to docs/PROGRESS.md
-     b. Stage and commit as the final `docs()` commit
+  2. PROGRESS.md: Already updated in Phase 2 (step 3.5). The docs() commit is part of the
+     commit plan — no additional file modification needed here. It will be committed as part
+     of the sequence above.
 
   3. Push to remote:
      a. Run `git push -u origin {branch}`
