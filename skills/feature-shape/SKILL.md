@@ -91,6 +91,48 @@ High-level list of frontend components needed:
 
 Do NOT specify file names — just describe what's needed functionally.
 
+## UI Reference
+
+Required for any feature with user-facing UI. Skip for backend-only features.
+
+### Visual Target
+
+Provide ONE visual prototype or reference:
+
+- Link to a Claude artifact, GitHub Spark prototype, or screenshot
+- Or reference an existing app (e.g., "like the Notion table view", "similar to GitHub issues list")
+
+The goal is a single, concrete image of what the assembled feature looks like.
+
+### Layout & Structure
+
+Describe the page layout in text:
+
+- Global structure (sidebar + main area, full-width, split pane, etc.)
+- Visual hierarchy (what's prominent, what's secondary)
+- Spatial relationships between components (stacked, side-by-side, nested)
+
+### UI Components & Patterns
+
+- **UI patterns used:** card, table, modal, badge, tabs, progress bar, toast, etc.
+- **Interactive patterns:** hover reveals, expandable sections, drag-and-drop, inline editing, etc.
+- **States:** empty state, loading state, error state, success feedback
+
+### Design Tokens
+
+Color and styling intentions referencing the project's theme tokens:
+
+- Use token names (primary, accent, base-100, warning, etc.) — never hardcoded hex values
+- Refer to the Design System section in MVP.md for available tokens
+
+### Responsiveness
+
+How the layout adapts to smaller screens:
+
+- What collapses, stacks, or reflows
+- What gets hidden or moved to a menu
+- Breakpoint behavior (e.g., sidebar becomes drawer on mobile)
+
 ## Open Questions
 
 Things that need clarification before or during implementation:
@@ -154,6 +196,38 @@ Feature Shapes can be updated during implementation if:
 
 But avoid major rewrites — if the shape was wrong, learn from it for the next one.
 
+### UI Reference: How to Fill It
+
+**Never start frontend coding without knowing the assembled visual target.**
+
+Three effort levels — pick the one that fits:
+
+**Quick (2 min):**
+
+> Reference an existing app: "Like the Notion table view" or "Similar to the GitHub issues list with labels and assignees". Add a sentence describing what differs.
+
+**Medium (10 min):**
+
+> Generate a visual prototype using Claude artifacts or GitHub Spark. Paste the link in the Visual Target sub-section. Describe the layout and key components in text.
+
+**Detailed (15 min):**
+
+> Create or screenshot an annotated mockup. Label the main zones, call out interactive elements, and note responsive behavior. This is ideal for complex or novel UIs.
+
+### UI Reference: Too Vague vs Just Right
+
+**Too vague:**
+
+> "A nice dashboard with some cards"
+
+> "Make it look modern"
+
+> "Table with user data"
+
+**Just right:**
+
+> "Dashboard layout: sidebar (240px, collapsible) + main area. Main area has a stats row (3 cards: primary bg for active users, accent for revenue, base-200 for recent activity) above a data table. Table uses zebra striping (base-100/base-200), sortable columns, and a search input in the top-right. Empty state shows an illustration with a CTA button (primary). On mobile, sidebar collapses to a hamburger menu and stats cards stack vertically."
+
 ---
 
 ## MVP.md Structure
@@ -201,6 +275,22 @@ Extended features if time permits.
 | Backend | NestJS |
 | Frontend | Astro + React |
 | etc. | etc. |
+
+## Design System
+
+| Aspect | Choice |
+|--------|--------|
+| CSS Framework | e.g., Tailwind CSS |
+| Component Library | e.g., DaisyUI, Radix UI, shadcn/ui |
+| Icon Set | e.g., Lucide, Heroicons |
+
+**Theme Tokens:**
+
+- Colors: primary, secondary, accent, neutral, base-100/200/300, info, success, warning, error
+- Spacing: use framework scale (e.g., Tailwind's p-4, gap-6)
+- Typography: font families, size scale
+
+Feature Shapes reference these tokens in their UI Reference section — never use hardcoded hex values.
 
 ## Build Order
 
