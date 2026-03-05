@@ -8,15 +8,12 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 .
 ├── CLAUDE.md              # Main instructions & system prompt
 ├── commands/              # Slash commands (/start, /coaching, etc.)
-│   ├── coach.md
 │   ├── coaching.md
 │   ├── planning.md
 │   ├── pragmatic-review.md
 │   ├── ship.md
 │   └── start.md
 ├── agents/                # Specialized agent behaviors
-│   ├── coaching-auditor.md
-│   ├── coaching-context.md
 │   ├── coaching-guide.md
 │   ├── coaching-review.md
 │   ├── coaching-scaffold.md
@@ -56,8 +53,7 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 
 | Command             | Purpose                                                   |
 | ------------------- | --------------------------------------------------------- |
-| `/start`            | Session startup - analyze context and propose next action |
-| `/coach`            | Autonomous coaching pipeline                              |
+| `/start`            | Session startup — analyze context, enter coaching         |
 | `/coaching`         | Start a guided implementation session                     |
 | `/planning`         | Create Implementation Plan from Feature Shape             |
 | `/pragmatic-review` | Pragmatic code review                                     |
@@ -67,8 +63,6 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 
 | Agent               | Purpose                                               |
 | ------------------- | ----------------------------------------------------- |
-| `coaching-context`  | Gathers project context for coaching sessions         |
-| `coaching-auditor`  | Audits coaching responses against skill rules         |
 | `coaching-scaffold` | Creates placeholder file pairs (impl + test)          |
 | `coaching-guide`    | Analyzes context and provides guidance with examples  |
 | `coaching-review`   | Code review before commit (logic, types, consistency) |
@@ -111,20 +105,17 @@ graph TB
             C2["⌘ planning"]
             C3["⌘ coaching"]
             C4["⌘ pragmatic-review"]
-            C5["⌘ coach"]
-            C6["⌘ ship"]
+            C5["⌘ ship"]
         end
 
         subgraph "Agents (behavior refs)"
             A1[coaching-guide]
             A2[coaching-scaffold]
             A3[coaching-review]
-            A4[coaching-context]
-            A5[coaching-auditor]
-            A6[ship-scanner]
-            A7[ship-planner]
-            A8[ship-verifier]
-            A9[ship-progress]
+            A4[ship-scanner]
+            A5[ship-planner]
+            A6[ship-verifier]
+            A7[ship-progress]
         end
 
         subgraph "Hooks (auto-fired)"
@@ -136,25 +127,19 @@ graph TB
         CFG[CLAUDE.md]
     end
 
+    C1 -->|"flows into"| C3
     C3 -->|"reads behavior"| A1
     C3 -->|"reads behavior"| A2
-    C3 -->|"reads behavior"| A3
+    C3 -->|"spawns"| A3
     C3 -->|"follows"| S5
     C4 -->|"follows"| S7
     C2 -->|"follows"| S6
 
     C5 -->|"spawns"| A4
-    C5 -->|"reads behavior"| A1
-    C5 -->|"reads behavior"| A2
-    C5 -->|"spawns"| A3
     C5 -->|"spawns"| A5
-    C5 -->|"follows"| S5
-
-    C6 -->|"spawns"| A6
-    C6 -->|"spawns"| A7
-    C6 -->|"spawns"| A8
-    C6 -->|"spawns"| A9
-    C6 -->|"follows"| S4
+    C5 -->|"spawns"| A6
+    C5 -->|"spawns"| A7
+    C5 -->|"follows"| S4
 
     H1 -->|"enforces"| S4
     H3 -->|"enforces"| S3
