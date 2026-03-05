@@ -149,7 +149,7 @@ Run `/coaching` to start a guided implementation session.
 
 | Command            | Purpose                                      |
 | ------------------ | -------------------------------------------- |
-| `/start`           | Session startup — analyze context, enter coaching |
+| `/start`           | Session startup — analyze context and propose next action |
 | `/planning`        | Create Implementation Plan from Feature Shape |
 | `/coaching`        | Guided implementation session                |
 | `/pragmatic-review`| Code review                                  |

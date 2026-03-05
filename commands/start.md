@@ -75,7 +75,7 @@ Based on the analysis, determine the appropriate action.
 
 <coaching_flow>
 When the user selects to continue implementation, naturally transition into the `/coaching` workflow:
-- Follow the coaching command's process flow (analyze → scaffold → guide → review → checkpoint)
+- Follow the coaching command's process flow (analyze → propose/report → scaffold → review → checkpoint)
 - `/start` provides the context analysis that `/coaching` needs — this is the recommended entry point
 </coaching_flow>
 

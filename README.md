@@ -53,7 +53,7 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 
 | Command             | Purpose                                                   |
 | ------------------- | --------------------------------------------------------- |
-| `/start`            | Session startup — analyze context, enter coaching         |
+| `/start`            | Session startup — analyze context and propose next action |
 | `/coaching`         | Start a guided implementation session                     |
 | `/planning`         | Create Implementation Plan from Feature Shape             |
 | `/pragmatic-review` | Pragmatic code review                                     |
