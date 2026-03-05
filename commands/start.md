@@ -68,10 +68,16 @@ Based on the analysis, determine the appropriate action.
 | Repo dirty, no feature in progress | ⚠️ Warn user. Suggest commit or stash before continuing. |
 | Repo dirty, feature in progress | Ask if user wants to continue current work or clean up first. |
 | Repo clean, no feature in progress | Propose next feature to implement from MVP/Feature Shapes. |
-| Repo clean, feature in progress | Summarize progress, propose next step from PROGRESS.md. |
+| Repo clean, feature in progress | Summarize progress, propose next step. Recommend continuing via `/coaching`. |
 | No MVP.md or Feature Shapes | Suggest creating MVP.md first, or ask what user wants to work on. |
 
 </decision_matrix>
+
+<coaching_flow>
+When the user selects to continue implementation, naturally transition into the `/coaching` workflow:
+- Follow the coaching command's process flow (analyze → scaffold → guide → review → checkpoint)
+- `/start` provides the context analysis that `/coaching` needs — this is the recommended entry point
+</coaching_flow>
 
 <output_format>
 ```text
