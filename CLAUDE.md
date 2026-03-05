@@ -149,8 +149,7 @@ Run `/coaching` to start a guided implementation session.
 
 | Command            | Purpose                                      |
 | ------------------ | -------------------------------------------- |
-| `/start`           | Session startup — analyze context            |
-| `/coach`           | Autonomous coaching pipeline                 |
+| `/start`           | Session startup — analyze context, enter coaching |
 | `/planning`        | Create Implementation Plan from Feature Shape |
 | `/coaching`        | Guided implementation session                |
 | `/pragmatic-review`| Code review                                  |
@@ -212,8 +211,6 @@ bun run format:check
 | `coaching-scaffold` | Creates placeholder file pairs (impl + test) |
 | `coaching-guide` | Analyzes context, provides guidance with examples |
 | `coaching-review` | Real code review before commit (logic, types, consistency) |
-| `coaching-context` | Gathers project context for coaching sessions |
-| `coaching-auditor` | Audits coaching responses against skill rules |
 | `ship-scanner`  | Scans changed files for convention violations |
 | `ship-planner`  | Plans atomic commit sequence from diff |
 | `ship-verifier` | Runs all verification checks (test, typecheck, lint, format) |
