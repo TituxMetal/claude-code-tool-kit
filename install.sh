@@ -16,6 +16,7 @@ readonly CLAUDE_DIR="${HOME}/.claude"
 readonly SKILLS_DIR="${CLAUDE_DIR}/skills"
 readonly COMMANDS_DIR="${CLAUDE_DIR}/commands"
 readonly AGENTS_DIR="${CLAUDE_DIR}/agents"
+readonly HOOKS_PLUGIN_DIR="${CLAUDE_DIR}/tool-kit-hooks"
 
 # Color codes
 readonly COLOR_RED='\033[0;31m'
@@ -304,17 +305,40 @@ installHooks() {
   local hooksJson
   hooksJson=$(buildHooksJson "$configFile") || return 1
 
+  # Create plugin directory structure
+  local pluginConfigDir="${HOOKS_PLUGIN_DIR}/.claude-plugin"
+  local hooksDir="${HOOKS_PLUGIN_DIR}/hooks"
+  mkdir -p "${pluginConfigDir}" "${hooksDir}"
+
+  # Write plugin manifest
+  cat > "${pluginConfigDir}/plugin.json" << 'PLUGIN_JSON'
+{
+  "name": "claude-code-tool-kit-hooks",
+  "description": "Claude Code Tool Kit hooks",
+  "version": "1.0.0"
+}
+PLUGIN_JSON
+
+  # Write wrapped hooks.json (plugin format)
+  echo "$hooksJson" | jq '{description: "Claude Code Tool Kit hooks", hooks: .}' > "${hooksDir}/hooks.json.tmp" || {
+    printError "Failed to generate hooks.json"
+    rm -f "${hooksDir}/hooks.json.tmp"
+    return 1
+  }
+  mv "${hooksDir}/hooks.json.tmp" "${hooksDir}/hooks.json"
+
+  # Register plugin in settings.json and remove legacy hooks key
   local existingSettings="{}"
   [[ -f "$settingsFile" ]] && existingSettings=$(cat "$settingsFile")
 
-  echo "$existingSettings" | jq --argjson hooks "$hooksJson" '. + {hooks: $hooks}' > "${settingsFile}.tmp" || {
-    printError "Failed to merge hooks into settings.json"
+  echo "$existingSettings" | jq --arg p "$HOOKS_PLUGIN_DIR" '.enabledPlugins[$p] = true | del(.hooks)' > "${settingsFile}.tmp" || {
+    printError "Failed to update settings.json"
     rm -f "${settingsFile}.tmp"
     return 1
   }
 
   mv "${settingsFile}.tmp" "$settingsFile"
-  printSuccess "Hooks installed into settings.json"
+  printSuccess "Hooks installed as plugin at ${HOOKS_PLUGIN_DIR}"
   echo
   return 0
 }
@@ -358,14 +382,20 @@ validateInstallation() {
     printWarning "Some agents may not have been installed (found ${agentCount})"
   }
 
-  # Check hooks
-  command -v jq &>/dev/null && [[ -f "${CLAUDE_DIR}/settings.json" ]] && {
-    local hasHooks
-    hasHooks=$(jq 'has("hooks")' "${CLAUDE_DIR}/settings.json" 2>/dev/null)
-    [[ "$hasHooks" == "true" ]] && {
-      printSuccess "Hooks installed in settings.json"
+  # Check hooks plugin
+  command -v jq &>/dev/null && {
+    local hooksOk=true
+    [[ -f "${HOOKS_PLUGIN_DIR}/.claude-plugin/plugin.json" ]] || hooksOk=false
+    [[ -f "${HOOKS_PLUGIN_DIR}/hooks/hooks.json" ]] || hooksOk=false
+    [[ -f "${CLAUDE_DIR}/settings.json" ]] && {
+      local pluginEnabled
+      pluginEnabled=$(jq --arg p "$HOOKS_PLUGIN_DIR" '.enabledPlugins[$p]' "${CLAUDE_DIR}/settings.json" 2>/dev/null)
+      [[ "$pluginEnabled" == "true" ]] || hooksOk=false
+    } || hooksOk=false
+    [[ "$hooksOk" == true ]] && {
+      printSuccess "Hooks installed as plugin"
     } || {
-      printWarning "Hooks not found in settings.json"
+      printWarning "Hooks plugin not fully installed"
     }
   }
 
@@ -458,9 +488,16 @@ for agent in "${agentsToRemove[@]}"; do
   ((removedCount++))
 done
 
-# Remove hooks from settings.json
+# Remove hooks plugin directory
+[[ -d "${HOME}/.claude/tool-kit-hooks" ]] && {
+  rm -rf "${HOME}/.claude/tool-kit-hooks"
+  echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Removed hooks plugin directory"
+}
+
+# Remove plugin from settings.json and clean legacy hooks key
 command -v jq &>/dev/null && [[ -f "${HOME}/.claude/settings.json" ]] && {
-  jq 'del(.hooks)' "${HOME}/.claude/settings.json" > "${HOME}/.claude/settings.json.tmp"
+  pluginPath="${HOME}/.claude/tool-kit-hooks"
+  jq --arg p "$pluginPath" 'del(.enabledPlugins[$p]) | del(.hooks)' "${HOME}/.claude/settings.json" > "${HOME}/.claude/settings.json.tmp"
   mv "${HOME}/.claude/settings.json.tmp" "${HOME}/.claude/settings.json"
   echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Removed hooks from settings.json"
 }
@@ -508,7 +545,7 @@ showSuccessMessage() {
   echo "  - Skills: ${SKILLS_DIR}/"
   echo "  - Commands: ${COMMANDS_DIR}/"
   echo "  - Agents: ${AGENTS_DIR}/"
-  echo "  - Hooks: ${CLAUDE_DIR}/settings.json"
+  echo "  - Hooks: ${CLAUDE_DIR}/tool-kit-hooks/ (plugin)"
   echo "  - Config: ${CLAUDE_DIR}/CLAUDE.md"
   echo
   showUsage
