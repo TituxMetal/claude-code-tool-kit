@@ -2,7 +2,8 @@
 name: ship-scanner
 description:
   Scans changed files for convention violations — TODOs, scaffolding remnants, AI attribution,
-  missing exports, language mixing, and console.log remnants.
+  missing exports, language mixing, console.log remnants, hardcoded dates, JSX attribute misuse,
+  hardcoded Tailwind colors, and pure black/white usage.
 ---
 
 # Agent: ship-scanner
@@ -29,7 +30,7 @@ The agent receives:
 
 ### Step 2: Run Convention Checks
 
-Run ALL 6 checks. Scan **only changed files** — never the entire codebase.
+Run ALL 10 checks. Scan **only changed files** — never the entire codebase.
 
 #### CS-1: TODO/FIXME Remnants (BLOCKER)
 
@@ -73,6 +74,29 @@ Run ALL 6 checks. Scan **only changed files** — never the entire codebase.
   - `console.debug`
   - `console.warn`
 - These are debug artifacts that should not ship to production
+
+#### CS-7: Hardcoded Temporal Values (WARNING)
+
+- Search changed `.ts`, `.tsx`, `.js`, `.jsx` files for hardcoded year values: `2025`, `2026`, `2027`, `2028`, `2029`, `2030`
+- Exclude test files, changelogs, and comments
+- These values become outdated — flag for review (prefer dynamic calculations like `new Date().getFullYear() + N`)
+
+#### CS-8: JSX Boolean Attribute Misuse (WARNING)
+
+- Search changed `.tsx`, `.jsx` files for patterns like: `aria-invalid={'false'}`, `aria-disabled={'false'}`, `aria-expanded={'false'}`, `aria-checked={'false'}`, `aria-hidden={'false'}`
+- In JSX, string `'false'` is truthy — must use `{undefined}` or omit the attribute entirely
+
+#### CS-9: Hardcoded Tailwind Colors (WARNING)
+
+- Search changed `.ts`, `.tsx`, `.jsx` files for hardcoded Tailwind color classes: `text-zinc-`, `bg-zinc-`, `text-gray-`, `bg-gray-`, `text-slate-`, `bg-slate-`, `border-zinc-`, `border-gray-`, `border-slate-`
+- Exclude test files and comments
+- When a project uses DaisyUI semantic tokens (`text-base-content`, `bg-base-200`, etc.), hardcoded Tailwind colors bypass theming and break visual coherence
+
+#### CS-10: Pure Black/White (WARNING)
+
+- Search changed `.ts`, `.tsx`, `.jsx`, `.css` files for: `bg-black`, `text-black`, `text-white`, `bg-white`, `#000`, `#fff`, `#000000`, `#ffffff`
+- Exclude test files and comments
+- Per code style rules, pure black and pure white are prohibited — use semantic tokens or opacity-modified neutrals instead (e.g., `bg-neutral/50`)
 
 ### Step 3: Aggregate Results
 
