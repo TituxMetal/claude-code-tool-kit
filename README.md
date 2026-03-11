@@ -21,7 +21,7 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 │   ├── ship-progress.md
 │   ├── ship-scanner.md
 │   └── ship-verifier.md
-├── hooks/                 # Claude Code hooks (injected into settings.json)
+├── hooks/                 # Claude Code hooks (installed as local plugin)
 │   ├── hooks-config.json
 │   └── prompts/
 │       ├── commit-validator.txt
@@ -61,19 +61,19 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 
 ## Agents
 
-| Agent               | Purpose                                               |
-| ------------------- | ----------------------------------------------------- |
-| `coaching-scaffold` | Creates placeholder file pairs (impl + test)          |
-| `coaching-guide`    | Analyzes context and provides guidance with examples  |
-| `coaching-review`   | Code review before commit (logic, types, consistency) |
-| `ship-scanner`      | Scans changed files for convention violations         |
-| `ship-planner`      | Plans atomic commit sequence from diff                |
+| Agent               | Purpose                                                      |
+| ------------------- | ------------------------------------------------------------ |
+| `coaching-scaffold` | Creates placeholder file pairs (impl + test)                 |
+| `coaching-guide`    | Analyzes context and provides guidance with examples         |
+| `coaching-review`   | Code review before commit (logic, types, consistency)        |
+| `ship-scanner`      | Scans changed files for convention violations                |
+| `ship-planner`      | Plans atomic commit sequence from diff                       |
 | `ship-verifier`     | Runs all verification checks (test, typecheck, lint, format) |
-| `ship-progress`     | Proposes PROGRESS.md checkbox updates                 |
+| `ship-progress`     | Proposes PROGRESS.md checkbox updates                        |
 
 ## Hooks
 
-Hooks are injected into `~/.claude/settings.json` at install time (requires `jq`).
+Hooks are installed as a local plugin at `~/.claude/tool-kit-hooks/` (requires `jq`).
 
 | Hook                | Event              | Type   | Purpose                                                  |
 | ------------------- | ------------------ | ------ | -------------------------------------------------------- |
@@ -184,7 +184,7 @@ The script will:
 - Copy skills to `~/.claude/skills/`
 - Copy commands to `~/.claude/commands/`
 - Copy agents to `~/.claude/agents/`
-- Inject hooks into `~/.claude/settings.json` (requires `jq`)
+- Install hooks as local plugin at `~/.claude/tool-kit-hooks/` (requires `jq`)
 - Copy CLAUDE.md to `~/.claude/`
 - Ask before overwriting existing files
 - Create an uninstall script at `~/.claude/uninstall-tool-kit.sh`
