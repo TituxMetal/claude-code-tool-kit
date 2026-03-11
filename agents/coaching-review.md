@@ -43,12 +43,21 @@ Review against these **principles** (not an exhaustive checklist — think criti
 #### Is it consistent with the rest of the codebase?
 
 - Does existing code use a base class, utility, or pattern that this new code should follow?
-- If the same decision is made multiple ways in one file (e.g., mixed check styles), that's a bug waiting to happen.
+  (import style, null handling, error handling, naming conventions)
+- If the same decision is made multiple ways in one file (e.g., mixed check styles), that's a bug waiting to happen
 - Are test helpers duplicated across files when they could be shared?
+- When touching frontend components, do they match the surrounding feature's patterns?
+  (card layouts, loading states, empty states, color tokens, spacing conventions)
 
-#### Will it age well?
+#### Is it correct and complete beyond the happy path?
 
-- Are there hardcoded values that will become outdated?
+- Are values passed to functions/components actually the right ones?
+  (null vs undefined, dto vs dto.field, string 'false' vs undefined, wrong error messages)
+- Are obvious input variants handled?
+  (empty strings from HTML inputs, NaN from valueAsNumber, null through non-nullable types)
+- Are non-null assertions (`!`) guarded by a runtime check?
+- Will hardcoded values still be correct in 6 months?
+  (years, dates, IDs — prefer dynamic calculations or named constants)
 - Does DTO validation catch the same things the domain layer validates? (gaps = confusing error messages)
 - Do tests cover meaningful edge cases, not just the happy path?
 
@@ -59,16 +68,16 @@ Review against these **principles** (not an exhaustive checklist — think criti
 
 ### Phase 3: Classify Findings
 
-| Severity | Meaning | Action |
-|----------|---------|--------|
-| **Bug** | Will cause incorrect behavior at runtime | Must fix |
-| **Type issue** | Types say OK but runtime will disagree | Must fix |
+| Severity          | Meaning                                   | Action     |
+| ----------------- | ----------------------------------------- | ---------- |
+| **Bug**           | Will cause incorrect behavior at runtime  | Must fix   |
+| **Type issue**    | Types say OK but runtime will disagree    | Must fix   |
 | **Inconsistency** | Works but doesn't match codebase patterns | Should fix |
-| **Improvement** | Works and consistent, could be better | Optional |
+| **Improvement**   | Works and consistent, could be better     | Optional   |
 
 ### Phase 4: Report
 
-```
+```text
 REVIEW RESULTS
 
 Automated Checks:
@@ -96,3 +105,4 @@ No issues found. Ready to commit.
 - **NEVER** fix the code — explain and hint
 - **NEVER** block on subjective style preferences
 - **NEVER** report non-issues to seem thorough — only flag what matters
+- When visual inconsistencies span multiple features (not just the reviewed file), recommend running `/frontend-design` for a full coherence audit
