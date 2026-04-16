@@ -21,12 +21,17 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 │   ├── ship-progress.md
 │   ├── ship-scanner.md
 │   └── ship-verifier.md
-├── hooks/                 # Claude Code hooks (installed as local plugin)
-│   ├── hooks-config.json
-│   └── prompts/
-│       ├── commit-validator.txt
-│       ├── task-checker.txt
-│       └── code-guardian.txt
+├── hooks/                 # Claude Code hooks (Bun TS scripts)
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── bun.lock
+│   └── scripts/
+│       ├── llm.ts              # Shared Haiku API client with JSON prefill
+│       ├── commit-validator.ts
+│       ├── branch-validator.ts
+│       ├── pr-validator.ts
+│       ├── task-checker.ts
+│       └── code-guardian.ts
 └── skills/                # Auto-loaded contextual skills
     ├── backend-architecture/
     ├── coaching/
@@ -73,15 +78,19 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 
 ## Hooks
 
-Hooks are installed as a local plugin at `~/.claude/tool-kit-hooks/` (requires `jq`).
+Hooks are Bun TypeScript scripts installed to `~/.claude/tool-kit-hooks/scripts/` and registered in `~/.claude/settings.json` (requires `jq` and `bun`). Each script calls Haiku via direct API fetch (~1.5s) using the OAuth token in `~/.claude/.credentials.json`.
 
-| Hook                | Event              | Type   | Purpose                                                  |
-| ------------------- | ------------------ | ------ | -------------------------------------------------------- |
-| `commit-validator`  | PreToolUse (Bash)  | prompt | Validates git commit format and rules                    |
-| `task-checker`      | Stop               | prompt | Verifies Claude completed all tasks before stopping      |
-| `code-guardian`     | Stop               | agent  | Reviews modified code against style rules                |
+| Hook                | Event              | Purpose                                                     |
+| ------------------- | ------------------ | ----------------------------------------------------------- |
+| `commit-validator`  | PreToolUse (Bash)  | Validates git commit format against git-workflow skill      |
+| `branch-validator`  | PreToolUse (Bash)  | Rejects diminutifs, enforces `feature/*` or `fix/*` prefix  |
+| `pr-validator`      | PreToolUse (Bash)  | Validates PR title, labels, body, assignee, base branch     |
+| `task-checker`      | Stop               | Verifies Claude completed all tasks before stopping         |
+| `code-guardian`     | Stop               | Reviews modified TS files against code-style skill          |
 
-Prompt files are in `hooks/prompts/` and can be edited directly. Run `./install.sh` again to apply changes.
+Scripts are in `hooks/scripts/` and can be edited directly. Run `./install.sh` again to apply changes.
+
+**Reliability:** All LLM calls use JSON prefill (assistant message starts with `{"`) to force Haiku to emit strict JSON regardless of context language (French/English).
 
 ## Architecture
 
@@ -120,8 +129,10 @@ graph TB
 
         subgraph "Hooks (auto-fired)"
             H1["commit-validator<br/>PreToolUse · Bash"]
-            H2["task-checker<br/>Stop · prompt"]
-            H3["code-guardian<br/>Stop · agent"]
+            H2["branch-validator<br/>PreToolUse · Bash"]
+            H3["pr-validator<br/>PreToolUse · Bash"]
+            H4["task-checker<br/>Stop"]
+            H5["code-guardian<br/>Stop"]
         end
 
         CFG[CLAUDE.md]
@@ -142,7 +153,10 @@ graph TB
     C5 -->|"follows"| S4
 
     H1 -->|"enforces"| S4
-    H3 -->|"enforces"| S3
+    H2 -->|"enforces"| S4
+    H3 -->|"enforces"| S4
+    H4 -->|"checks"| S5
+    H5 -->|"enforces"| S3
 
     CFG -->|"references"| S1 & S2 & S3 & S4 & S5 & S6 & S7
 ```
@@ -184,7 +198,7 @@ The script will:
 - Copy skills to `~/.claude/skills/`
 - Copy commands to `~/.claude/commands/`
 - Copy agents to `~/.claude/agents/`
-- Install hooks as local plugin at `~/.claude/tool-kit-hooks/` (requires `jq`)
+- Install hook TS scripts to `~/.claude/tool-kit-hooks/scripts/` and register in `settings.json` (requires `jq` and `bun`)
 - Copy CLAUDE.md to `~/.claude/`
 - Ask before overwriting existing files
 - Create an uninstall script at `~/.claude/uninstall-tool-kit.sh`

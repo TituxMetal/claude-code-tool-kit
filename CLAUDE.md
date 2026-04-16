@@ -220,13 +220,15 @@ bun run format:check
 
 ## Hooks
 
-Hooks are installed as a local plugin at `~/.claude/tool-kit-hooks/` at install time from `hooks/hooks-config.json` (requires `jq`; hook installation is skipped if `jq` is not available).
+Hooks are Bun TypeScript scripts installed to `~/.claude/tool-kit-hooks/scripts/` and registered in `~/.claude/settings.json` at install time (requires `jq` and `bun`; hook installation is skipped otherwise). Each script calls Haiku via direct API fetch (OAuth token from `~/.claude/.credentials.json`) with a JSON-prefill prompt for reliable output.
 
-| Hook | Event | Type | Purpose |
-| ---- | ----- | ---- | ------- |
-| `commit-validator` | PreToolUse (Bash) | prompt | Validates commit message format and rules |
-| `task-checker` | Stop | prompt | Verifies all work is complete before session end |
-| `code-guardian` | Stop | agent | Final code review against style rules |
+| Hook | Event | Purpose |
+| ---- | ----- | ------- |
+| `commit-validator` | PreToolUse (Bash) | Validates commit message format against git-workflow skill |
+| `branch-validator` | PreToolUse (Bash) | Rejects diminutifs (`feat/`), enforces `feature/*` or `fix/*` prefix |
+| `pr-validator` | PreToolUse (Bash) | Validates PR title, labels, body, assignee, base branch |
+| `task-checker` | Stop | Verifies work is complete before session end (coaching-aware) |
+| `code-guardian` | Stop | Reviews modified TS files against code-style skill |
 
 ---
 
