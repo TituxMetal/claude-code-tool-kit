@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Claude Code Tool Kit Installer
-# Version: 1.0.0
+# Version: 2.0.0
 # Description: Installs skills, commands, agents, hooks, and configuration for Claude Code
 
 set -euo pipefail
@@ -9,14 +9,15 @@ set -euo pipefail
 # Constants
 readonly SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly VERSION="1.0.0"
+readonly VERSION="2.0.0"
 
 # Installation paths
 readonly CLAUDE_DIR="${HOME}/.claude"
 readonly SKILLS_DIR="${CLAUDE_DIR}/skills"
 readonly COMMANDS_DIR="${CLAUDE_DIR}/commands"
 readonly AGENTS_DIR="${CLAUDE_DIR}/agents"
-readonly HOOKS_PLUGIN_DIR="${CLAUDE_DIR}/tool-kit-hooks"
+readonly HOOKS_DIR="${CLAUDE_DIR}/tool-kit-hooks"
+readonly HOOKS_SCRIPTS_DIR="${HOOKS_DIR}/scripts"
 
 # Color codes
 readonly COLOR_RED='\033[0;31m'
@@ -77,7 +78,7 @@ confirmAction() {
 # -----------------------------------------------------------------------------
 
 validateSourceFiles() {
-  local requiredDirs=("skills" "commands" "agents" "hooks")
+  local requiredDirs=("skills" "commands" "agents" "hooks" "hooks/scripts")
 
   for dir in "${requiredDirs[@]}"; do
     [[ -d "${SCRIPT_DIR}/${dir}" ]] || {
@@ -88,6 +89,11 @@ validateSourceFiles() {
 
   [[ -f "${SCRIPT_DIR}/CLAUDE.md" ]] || {
     printError "CLAUDE.md not found"
+    return 1
+  }
+
+  [[ -f "${SCRIPT_DIR}/hooks/package.json" ]] || {
+    printError "hooks/package.json not found"
     return 1
   }
 
@@ -244,46 +250,6 @@ installClaudeMd() {
   return 0
 }
 
-buildHooksJson() {
-  local configFile="$1"
-  local hooksDir
-  hooksDir=$(dirname "$configFile")
-
-  local result
-  result=$(cat "$configFile")
-
-  # Extract all unique promptFile paths from the config
-  local promptFiles
-  promptFiles=$(echo "$result" | jq -r '.. | .promptFile? // empty' | sort -u)
-
-  # For each prompt file, read content and inject into JSON
-  while IFS= read -r promptFile; do
-    [[ -z "$promptFile" ]] && continue
-    local fullPath="${hooksDir}/${promptFile}"
-
-    [[ -f "$fullPath" ]] || {
-      printError "Prompt file not found: ${fullPath}"
-      return 1
-    }
-
-    local content
-    content=$(cat "$fullPath")
-
-    # Replace promptFile reference with inline prompt content
-    result=$(echo "$result" | jq \
-      --arg file "$promptFile" \
-      --arg content "$content" \
-      'walk(
-        if type == "object" and .promptFile == $file then
-          del(.promptFile) + {prompt: $content}
-        else .
-        end
-      )')
-  done <<< "$promptFiles"
-
-  echo "$result"
-}
-
 installHooks() {
   printInfo "Installing hooks..."
 
@@ -294,52 +260,112 @@ installHooks() {
     return 0
   }
 
-  local configFile="${SCRIPT_DIR}/hooks/hooks-config.json"
-  local settingsFile="${CLAUDE_DIR}/settings.json"
-
-  [[ -f "$configFile" ]] || {
-    printError "hooks-config.json not found: ${configFile}"
-    return 1
+  command -v bun &>/dev/null || {
+    printWarning "bun not found — skipping hooks installation"
+    printWarning "Install bun to enable hooks: https://bun.sh"
+    echo
+    return 0
   }
 
-  local hooksJson
-  hooksJson=$(buildHooksJson "$configFile") || return 1
+  # Create hooks directory
+  createDirectory "${HOOKS_DIR}" || return 1
+  createDirectory "${HOOKS_SCRIPTS_DIR}" || return 1
 
-  # Create plugin directory structure
-  local pluginConfigDir="${HOOKS_PLUGIN_DIR}/.claude-plugin"
-  local hooksDir="${HOOKS_PLUGIN_DIR}/hooks"
-  mkdir -p "${pluginConfigDir}" "${hooksDir}"
+  # Copy hooks config files (package.json, tsconfig.json, .gitignore, bun.lock)
+  copyFileWithConfirmation "${SCRIPT_DIR}/hooks/package.json" "${HOOKS_DIR}/package.json"
+  copyFileWithConfirmation "${SCRIPT_DIR}/hooks/tsconfig.json" "${HOOKS_DIR}/tsconfig.json"
+  copyFileWithConfirmation "${SCRIPT_DIR}/hooks/.gitignore" "${HOOKS_DIR}/.gitignore"
+  copyFileWithConfirmation "${SCRIPT_DIR}/hooks/bun.lock" "${HOOKS_DIR}/bun.lock"
 
-  # Write plugin manifest
-  cat > "${pluginConfigDir}/plugin.json" << 'PLUGIN_JSON'
-{
-  "name": "claude-code-tool-kit-hooks",
-  "description": "Claude Code Tool Kit hooks",
-  "version": "1.0.0"
+  # Copy hook scripts
+  local scriptCount=0
+  for scriptFile in "${SCRIPT_DIR}/hooks/scripts"/*.ts; do
+    [[ -f "$scriptFile" ]] || continue
+    local filename
+    filename=$(basename "$scriptFile")
+    copyFileWithConfirmation "$scriptFile" "${HOOKS_SCRIPTS_DIR}/${filename}"
+    ((scriptCount++))
+  done
+  printInfo "Copied ${scriptCount} hook scripts"
+
+  # Install bun dependencies
+  printInfo "Installing bun dependencies..."
+  ( cd "${HOOKS_DIR}" && bun install --silent ) || {
+    printError "bun install failed in ${HOOKS_DIR}"
+    return 1
+  }
+  printSuccess "bun dependencies installed"
+
+  # Register hooks in settings.json
+  registerHooksInSettings || return 1
+
+  echo
+  return 0
 }
-PLUGIN_JSON
 
-  # Write wrapped hooks.json (plugin format)
-  echo "$hooksJson" | jq '{description: "Claude Code Tool Kit hooks", hooks: .}' > "${hooksDir}/hooks.json.tmp" || {
-    printError "Failed to generate hooks.json"
-    rm -f "${hooksDir}/hooks.json.tmp"
-    return 1
-  }
-  mv "${hooksDir}/hooks.json.tmp" "${hooksDir}/hooks.json"
-
-  # Register plugin in settings.json and remove legacy hooks key
+registerHooksInSettings() {
+  local settingsFile="${CLAUDE_DIR}/settings.json"
   local existingSettings="{}"
   [[ -f "$settingsFile" ]] && existingSettings=$(cat "$settingsFile")
 
-  echo "$existingSettings" | jq --arg p "$HOOKS_PLUGIN_DIR" '.enabledPlugins[$p] = true | del(.hooks)' > "${settingsFile}.tmp" || {
+  local newHooks
+  newHooks=$(cat <<EOF
+{
+  "PreToolUse": [
+    {
+      "matcher": "Bash",
+      "hooks": [
+        { "type": "command", "command": "bun run ${HOOKS_SCRIPTS_DIR}/commit-validator.ts", "timeout": 15 },
+        { "type": "command", "command": "bun run ${HOOKS_SCRIPTS_DIR}/branch-validator.ts", "timeout": 5 },
+        { "type": "command", "command": "bun run ${HOOKS_SCRIPTS_DIR}/pr-validator.ts", "timeout": 10 }
+      ]
+    }
+  ],
+  "Stop": [
+    {
+      "hooks": [
+        { "type": "command", "command": "bun run ${HOOKS_SCRIPTS_DIR}/task-checker.ts", "timeout": 30 }
+      ]
+    },
+    {
+      "hooks": [
+        { "type": "command", "command": "bun run ${HOOKS_SCRIPTS_DIR}/code-guardian.ts", "timeout": 60 }
+      ]
+    }
+  ]
+}
+EOF
+)
+
+  # Merge: replace tool-kit-hook entries while preserving other hooks (e.g. cleanClaudePollution)
+  echo "$existingSettings" | jq \
+    --argjson new "$newHooks" \
+    '
+    # Remove any existing tool-kit-hooks entries (detect by command containing tool-kit-hooks/scripts)
+    .hooks //= {} |
+    .hooks.PreToolUse //= [] |
+    .hooks.Stop //= [] |
+    .hooks.PreToolUse |= map(
+      .hooks |= map(select(.command // "" | contains("tool-kit-hooks/scripts") | not)) |
+      select(.hooks | length > 0)
+    ) |
+    .hooks.Stop |= map(
+      .hooks |= map(select(.command // "" | contains("tool-kit-hooks/scripts") | not)) |
+      select(.hooks | length > 0)
+    ) |
+    # Append new tool-kit-hooks entries
+    .hooks.PreToolUse += $new.PreToolUse |
+    .hooks.Stop += $new.Stop |
+    # Remove legacy plugin registration if present
+    if .enabledPlugins? then del(.enabledPlugins["'"${HOOKS_DIR}"'"]) else . end
+    ' > "${settingsFile}.tmp" || {
     printError "Failed to update settings.json"
     rm -f "${settingsFile}.tmp"
     return 1
   }
 
   mv "${settingsFile}.tmp" "$settingsFile"
-  printSuccess "Hooks installed as plugin at ${HOOKS_PLUGIN_DIR}"
-  echo
+  printSuccess "Hooks registered in settings.json"
   return 0
 }
 
@@ -382,20 +408,30 @@ validateInstallation() {
     printWarning "Some agents may not have been installed (found ${agentCount})"
   }
 
-  # Check hooks plugin
-  command -v jq &>/dev/null && {
-    local hooksOk=true
-    [[ -f "${HOOKS_PLUGIN_DIR}/.claude-plugin/plugin.json" ]] || hooksOk=false
-    [[ -f "${HOOKS_PLUGIN_DIR}/hooks/hooks.json" ]] || hooksOk=false
-    [[ -f "${CLAUDE_DIR}/settings.json" ]] && {
-      local pluginEnabled
-      pluginEnabled=$(jq --arg p "$HOOKS_PLUGIN_DIR" '.enabledPlugins[$p]' "${CLAUDE_DIR}/settings.json" 2>/dev/null)
-      [[ "$pluginEnabled" == "true" ]] || hooksOk=false
-    } || hooksOk=false
-    [[ "$hooksOk" == true ]] && {
-      printSuccess "Hooks installed as plugin"
+  # Check hooks
+  command -v jq &>/dev/null && command -v bun &>/dev/null && {
+    local scriptCount
+    scriptCount=$(find "${HOOKS_SCRIPTS_DIR}" -name "*.ts" -type f 2>/dev/null | wc -l)
+    [[ $scriptCount -ge 6 ]] && {
+      printSuccess "${scriptCount} hook scripts installed"
     } || {
-      printWarning "Hooks plugin not fully installed"
+      printWarning "Some hook scripts may not have been installed (found ${scriptCount})"
+    }
+
+    [[ -d "${HOOKS_DIR}/node_modules" ]] && {
+      printSuccess "Hook dependencies installed"
+    } || {
+      printWarning "Hook dependencies not installed (node_modules missing)"
+    }
+
+    [[ -f "${CLAUDE_DIR}/settings.json" ]] && {
+      local hookCount
+      hookCount=$(jq '[.hooks.PreToolUse[]?.hooks[]?, .hooks.Stop[]?.hooks[]?] | map(select(.command // "" | contains("tool-kit-hooks/scripts"))) | length' "${CLAUDE_DIR}/settings.json" 2>/dev/null)
+      [[ "$hookCount" -ge 5 ]] && {
+        printSuccess "${hookCount} hooks registered in settings.json"
+      } || {
+        printWarning "Hooks not properly registered in settings.json (found ${hookCount})"
+      }
     }
   }
 
@@ -488,18 +524,31 @@ for agent in "${agentsToRemove[@]}"; do
   ((removedCount++))
 done
 
-# Remove hooks plugin directory
+# Remove hooks directory
 [[ -d "${HOME}/.claude/tool-kit-hooks" ]] && {
   rm -rf "${HOME}/.claude/tool-kit-hooks"
-  echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Removed hooks plugin directory"
+  echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Removed hooks directory"
 }
 
-# Remove plugin from settings.json and clean legacy hooks key
+# Remove tool-kit hooks from settings.json (keep other hooks intact)
 command -v jq &>/dev/null && [[ -f "${HOME}/.claude/settings.json" ]] && {
-  pluginPath="${HOME}/.claude/tool-kit-hooks"
-  jq --arg p "$pluginPath" 'del(.enabledPlugins[$p]) | del(.hooks)' "${HOME}/.claude/settings.json" > "${HOME}/.claude/settings.json.tmp"
+  jq '
+    if .hooks? then
+      .hooks.PreToolUse //= [] |
+      .hooks.Stop //= [] |
+      .hooks.PreToolUse |= map(
+        .hooks |= map(select(.command // "" | contains("tool-kit-hooks/scripts") | not)) |
+        select(.hooks | length > 0)
+      ) |
+      .hooks.Stop |= map(
+        .hooks |= map(select(.command // "" | contains("tool-kit-hooks/scripts") | not)) |
+        select(.hooks | length > 0)
+      )
+    else . end |
+    if .enabledPlugins? then del(.enabledPlugins["'"${HOME}"'/.claude/tool-kit-hooks"]) else . end
+  ' "${HOME}/.claude/settings.json" > "${HOME}/.claude/settings.json.tmp"
   mv "${HOME}/.claude/settings.json.tmp" "${HOME}/.claude/settings.json"
-  echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Removed hooks from settings.json"
+  echo -e "${COLOR_GREEN}[OK]${COLOR_RESET} Removed tool-kit hooks from settings.json"
 }
 
 echo -e "${COLOR_GREEN}Removed ${removedCount} items${COLOR_RESET}"
@@ -545,7 +594,7 @@ showSuccessMessage() {
   echo "  - Skills: ${SKILLS_DIR}/"
   echo "  - Commands: ${COMMANDS_DIR}/"
   echo "  - Agents: ${AGENTS_DIR}/"
-  echo "  - Hooks: ${CLAUDE_DIR}/tool-kit-hooks/ (plugin)"
+  echo "  - Hooks: ${HOOKS_DIR}/scripts/ (registered in settings.json)"
   echo "  - Config: ${CLAUDE_DIR}/CLAUDE.md"
   echo
   showUsage
