@@ -19,10 +19,10 @@ if (!cmd.includes('gh pr create')) {
 const hardIssues: string[] = []
 const contextualIssues: string[] = []
 
-// title checks
-const titleMatch = cmd.match(/--title\s+["']([^"']+)["']/)
+// title checks — support quoted, equals form, and unquoted single-word titles
+const titleMatch = cmd.match(/--title(?:=|\s+)(?:["']([^"']+)["']|(\S+))/)
 if (titleMatch) {
-  const title = titleMatch[1]!
+  const title = (titleMatch[1] ?? titleMatch[2])!
 
   // diminutifs — hard deny
   const diminutifs = [
