@@ -315,21 +315,21 @@ registerHooksInSettings() {
     {
       "matcher": "Bash",
       "hooks": [
-        { "type": "command", "command": "bun run ${HOOKS_SCRIPTS_DIR}/commit-validator.ts", "timeout": 15 },
-        { "type": "command", "command": "bun run ${HOOKS_SCRIPTS_DIR}/branch-validator.ts", "timeout": 5 },
-        { "type": "command", "command": "bun run ${HOOKS_SCRIPTS_DIR}/pr-validator.ts", "timeout": 10 }
+        { "type": "command", "command": "bun run \"${HOOKS_SCRIPTS_DIR}/commit-validator.ts\"", "timeout": 15 },
+        { "type": "command", "command": "bun run \"${HOOKS_SCRIPTS_DIR}/branch-validator.ts\"", "timeout": 5 },
+        { "type": "command", "command": "bun run \"${HOOKS_SCRIPTS_DIR}/pr-validator.ts\"", "timeout": 10 }
       ]
     }
   ],
   "Stop": [
     {
       "hooks": [
-        { "type": "command", "command": "bun run ${HOOKS_SCRIPTS_DIR}/task-checker.ts", "timeout": 30 }
+        { "type": "command", "command": "bun run \"${HOOKS_SCRIPTS_DIR}/task-checker.ts\"", "timeout": 30 }
       ]
     },
     {
       "hooks": [
-        { "type": "command", "command": "bun run ${HOOKS_SCRIPTS_DIR}/code-guardian.ts", "timeout": 60 }
+        { "type": "command", "command": "bun run \"${HOOKS_SCRIPTS_DIR}/code-guardian.ts\"", "timeout": 60 }
       ]
     }
   ]
@@ -346,12 +346,16 @@ EOF
     .hooks.PreToolUse //= [] |
     .hooks.Stop //= [] |
     .hooks.PreToolUse |= map(
-      .hooks |= map(select(.command // "" | contains("tool-kit-hooks/scripts") | not)) |
-      select(.hooks | length > 0)
+      if (.hooks? and (.hooks | type) == "array") then
+        .hooks |= map(select(.command // "" | contains("tool-kit-hooks/scripts") | not)) |
+        select(.hooks | length > 0)
+      else . end
     ) |
     .hooks.Stop |= map(
-      .hooks |= map(select(.command // "" | contains("tool-kit-hooks/scripts") | not)) |
-      select(.hooks | length > 0)
+      if (.hooks? and (.hooks | type) == "array") then
+        .hooks |= map(select(.command // "" | contains("tool-kit-hooks/scripts") | not)) |
+        select(.hooks | length > 0)
+      else . end
     ) |
     # Append new tool-kit-hooks entries
     .hooks.PreToolUse += $new.PreToolUse |
@@ -537,12 +541,16 @@ command -v jq &>/dev/null && [[ -f "${HOME}/.claude/settings.json" ]] && {
       .hooks.PreToolUse //= [] |
       .hooks.Stop //= [] |
       .hooks.PreToolUse |= map(
-        .hooks |= map(select(.command // "" | contains("tool-kit-hooks/scripts") | not)) |
-        select(.hooks | length > 0)
+        if (.hooks? and (.hooks | type) == "array") then
+          .hooks |= map(select(.command // "" | contains("tool-kit-hooks/scripts") | not)) |
+          select(.hooks | length > 0)
+        else . end
       ) |
       .hooks.Stop |= map(
-        .hooks |= map(select(.command // "" | contains("tool-kit-hooks/scripts") | not)) |
-        select(.hooks | length > 0)
+        if (.hooks? and (.hooks | type) == "array") then
+          .hooks |= map(select(.command // "" | contains("tool-kit-hooks/scripts") | not)) |
+          select(.hooks | length > 0)
+        else . end
       )
     else . end |
     if .enabledPlugins? then del(.enabledPlugins["'"${HOME}"'/.claude/tool-kit-hooks"]) else . end
