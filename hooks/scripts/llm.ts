@@ -14,35 +14,39 @@ export const askLlm = async (
   prefill?: string,
   temperature = 0,
 ): Promise<string | null> => {
-  const creds = await Bun.file(CREDENTIALS_PATH).json()
-  const token = creds.claudeAiOauth?.accessToken
+  try {
+    const creds = await Bun.file(CREDENTIALS_PATH).json()
+    const token = creds.claudeAiOauth?.accessToken
 
-  if (!token) return null
+    if (!token) return null
 
-  const messages: Message[] = [{ role: 'user', content: userPrompt }]
-  if (prefill) messages.push({ role: 'assistant', content: prefill })
+    const messages: Message[] = [{ role: 'user', content: userPrompt }]
+    if (prefill) messages.push({ role: 'assistant', content: prefill })
 
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': token,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: maxTokens,
-      temperature,
-      system: systemPrompt,
-      messages,
-    }),
-  })
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': token,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: maxTokens,
+        temperature,
+        system: systemPrompt,
+        messages,
+      }),
+    })
 
-  if (!response.ok) return null
+    if (!response.ok) return null
 
-  const data = await response.json() as { content: Array<{ type: string, text: string }> }
-  const text = data.content?.find((b) => b.type === 'text')?.text ?? null
+    const data = await response.json() as { content: Array<{ type: string, text: string }> }
+    const text = data.content?.find((b) => b.type === 'text')?.text ?? null
 
-  if (text === null) return null
-  return prefill ? prefill + text : text
+    if (text === null) return null
+    return prefill ? prefill + text : text
+  } catch {
+    return null
+  }
 }
