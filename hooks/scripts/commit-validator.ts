@@ -7,24 +7,29 @@ const log = async (msg: string) => {
   await Bun.write(LOG_FILE, (await Bun.file(LOG_FILE).text().catch(() => '')) + line)
 }
 
-const SYSTEM_PROMPT = `You validate git commit messages. Output ONLY raw JSON, no markdown, no code fences, no explanation.
+const SKILL_PATH = `${process.env.HOME}/.claude/skills/git-workflow/SKILL.md`
+const skillContent = await Bun.file(SKILL_PATH).text().catch(() => '')
 
-Rules (FAIL on any violation):
+const SYSTEM_PROMPT = `You are a strict git commit message validator. Output ONLY raw JSON, no markdown, no code fences, no explanation.
 
-1. First line format: "type(scope): description"
-   - Allowed types: feat, fix, docs, style, refactor, test, chore, perf, ci, build
-   - The description (the text AFTER "type(scope): ") MUST start with a lowercase letter
-   - Do not flag the body content for casing — only the description on the first line matters for case
+Here are the commit rules from the project's git-workflow skill:
 
-2. The body MUST exist and contain a "Files:" section followed by lines starting with "- "
+${skillContent}
 
-3. The body MUST NOT contain any of these signatures: "Co-Authored-By", "Generated with", "Signed-off-by", "Claude Code"
+Strict rules to enforce on every commit message (FAIL on any violation):
+- Type MUST be one of: feat, fix, docs, style, refactor, test, chore, perf, ci, build
+- The first character of the description (the text right after "type(scope): ") MUST be lowercase. Examples:
+  * "feat(api): add user auth" → ok (description starts with lowercase 'a')
+  * "feat(api): Add user auth" → FAIL (description starts with uppercase 'A')
+  * "feat(api): API redesign" → FAIL (description starts with uppercase 'A')
+- A non-empty body MUST exist after the first line, listing the changed files
+- Body MUST NOT contain any of these signatures: "Co-Authored-By", "Generated with", "Signed-off-by", "Claude Code"
 
-Output formats (NOTHING else allowed):
+Valid outputs (ONLY these two formats, nothing else):
 {"ok": true}
-{"ok": false, "reason": "<specific reason quoting the exact violating text>"}
+{"ok": false, "reason": "<short specific reason quoting the exact violating text>"}
 
-When you flag a violation, quote the EXACT character sequence you read from the message. Do not paraphrase or correct.`
+When you flag a violation, quote the EXACT character sequence you see. Do not paraphrase.`
 
 const extractMessage = async (cmd: string): Promise<string | null> => {
   // -F file
@@ -67,7 +72,7 @@ if (input.tool_name !== 'Bash' || !input.tool_input?.command) {
 const cmd = input.tool_input.command
 
 // Fast path: not a git commit command
-if (!cmd.includes('git commit') && !cmd.includes('git -c') ) {
+if (!cmd.includes('git commit') && !cmd.includes('git -c')) {
   process.exit(0)
 }
 
