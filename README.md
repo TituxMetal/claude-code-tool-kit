@@ -26,7 +26,9 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 │   ├── tsconfig.json
 │   ├── bun.lock
 │   └── scripts/
-│       ├── llm.ts              # Shared Haiku API client with JSON prefill
+│       ├── validators.ts       # Pure regex helpers (blocking layer, testable)
+│       ├── validators.spec.ts  # Bun tests for the regex layer (repo-only)
+│       ├── llm.ts              # Provider-pluggable LLM client (Anthropic / DeepSeek)
 │       ├── commit-validator.ts
 │       ├── branch-validator.ts
 │       ├── pr-validator.ts
@@ -78,19 +80,55 @@ Personal collection of skills, commands, agents, and configurations for Claude C
 
 ## Hooks
 
-Hooks are Bun TypeScript scripts installed to `~/.claude/tool-kit-hooks/scripts/` and registered in `~/.claude/settings.json` (requires `jq` and `bun`). Each script calls Haiku via direct API fetch (~1.5s) using the OAuth token in `~/.claude/.credentials.json`.
+Hooks are Bun TypeScript scripts installed to `~/.claude/tool-kit-hooks/scripts/` and registered in
+`~/.claude/settings.json` (requires `jq` and `bun`). They follow a **two-layer architecture**:
 
-| Hook                | Event              | Purpose                                                     |
-| ------------------- | ------------------ | ----------------------------------------------------------- |
-| `commit-validator`  | PreToolUse (Bash)  | Validates git commit format against git-workflow skill      |
-| `branch-validator`  | PreToolUse (Bash)  | Rejects diminutifs, enforces `feature/*` or `fix/*` prefix  |
-| `pr-validator`      | PreToolUse (Bash)  | Validates PR title, labels, body, assignee, base branch     |
-| `task-checker`      | Stop               | Verifies Claude completed all tasks before stopping         |
-| `code-guardian`     | Stop               | Reviews modified TS files against code-style skill          |
+1. **Layer 1 — deterministic regex** (`validators.ts`): pure functions, zero I/O. This is the
+   **blocking** layer. If a regex check fails, the hook denies the operation with a precise reason.
+   Immune to LLM hallucination.
+2. **Layer 2 — LLM advisory** (`llm.ts`): provider-pluggable LLM call. **Never blocks** — output is
+   logged to `/tmp/<hook>.log` for observability. Hallucinations land in the log harmlessly.
 
-Scripts are in `hooks/scripts/` and can be edited directly. Run `./install.sh` again to apply changes.
+The split keeps trivial structural rules (commit format, no semicolons, no `function` keyword)
+deterministic and immune to LLM hallucination, while leaving subjective rules (description quality,
+control-flow nuance) to a fail-safe LLM layer.
 
-**Reliability:** All LLM calls use JSON prefill (assistant message starts with `{"`) to force Haiku to emit strict JSON regardless of context language (French/English).
+| Hook               | Event             | Layer 1 (regex, blocking)                                               | Layer 2 (LLM, advisory)                         |
+| ------------------ | ----------------- | ----------------------------------------------------------------------- | ----------------------------------------------- |
+| `commit-validator` | PreToolUse (Bash) | `type(scope): description` format, lowercase first, body, no signatures | description quality, body / diff alignment      |
+| `branch-validator` | PreToolUse (Bash) | Rejects diminutifs (`feat/`), enforces `feature/*` or `fix/*`           | judges off-convention justifications when given |
+| `pr-validator`     | PreToolUse (Bash) | PR title, labels, body, assignee, base branch                           | (none)                                          |
+| `task-checker`     | Stop              | (none)                                                                  | Verifies Claude completed all tasks             |
+| `code-guardian`    | Stop              | trailing `;`, `function` keyword, `.then()` chains                      | early-return / control-flow nuance              |
+
+Scripts are in `hooks/scripts/` and can be edited directly. Run `./install.sh` again to apply
+changes. The `*.spec.ts` test file is **not** propagated by `install.sh` — it stays in the repo.
+
+### LLM provider
+
+```bash
+# default — Anthropic Haiku via Claude Max OAuth (~/.claude/.credentials.json)
+LLM_PROVIDER=anthropic
+
+# alternative — DeepSeek via API key (OpenAI-compatible /beta endpoint)
+export LLM_PROVIDER=deepseek
+export DEEPSEEK_API_KEY=sk-...
+# optional: override the default 'deepseek-chat' model
+export DEEPSEEK_MODEL=deepseek-chat
+```
+
+Both providers receive a JSON prefill (`{"`) to anchor strict JSON output regardless of context
+language.
+
+### Running the regex tests
+
+```bash
+cd hooks && bun test
+```
+
+The regex layer is the load-bearing piece — these tests cover the exact false positives observed in
+production sessions. The LLM advisory layer is fail-open by design and is observed via the log files
+rather than unit-tested.
 
 ## Architecture
 
@@ -190,7 +228,9 @@ sequenceDiagram
 ## Installation
 
 ```bash
-./install.sh
+./install.sh           # default: overwrite existing files silently
+./install.sh --ask     # prompt before overwriting each existing file
+./install.sh --help    # show usage
 ```
 
 The script will:
@@ -198,9 +238,10 @@ The script will:
 - Copy skills to `~/.claude/skills/`
 - Copy commands to `~/.claude/commands/`
 - Copy agents to `~/.claude/agents/`
-- Install hook TS scripts to `~/.claude/tool-kit-hooks/scripts/` and register in `settings.json` (requires `jq` and `bun`)
+- Install hook TS scripts to `~/.claude/tool-kit-hooks/scripts/` and register in `settings.json`
+  (requires `jq` and `bun`) — `*.spec.ts` test files stay in the repo
 - Copy CLAUDE.md to `~/.claude/`
-- Ask before overwriting existing files
+- Skip files that are already byte-identical to the source (logged as `Already up-to-date`)
 - Create an uninstall script at `~/.claude/uninstall-tool-kit.sh`
 
 ## Uninstall
