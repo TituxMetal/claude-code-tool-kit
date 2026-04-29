@@ -29,6 +29,7 @@ readonly COLOR_RESET='\033[0m'
 # Global variables
 declare -g installSuccess=true
 declare -g hasWarnings=false
+declare -g askBeforeOverwrite=false
 
 # -----------------------------------------------------------------------------
 # Output Functions
@@ -71,6 +72,39 @@ confirmAction() {
   read -p "${prompt} (y/N): " -n 1 -r response
   echo
   [[ "$response" =~ ^[Yy]$ ]]
+}
+
+showCliUsage() {
+  cat << EOF
+Usage: ./install.sh [OPTIONS]
+
+Installs the Claude Code Tool Kit (skills, commands, agents, hooks, CLAUDE.md)
+into ~/.claude/. Existing files are overwritten silently by default.
+
+Options:
+  --ask        Prompt before overwriting each existing file or directory.
+               Use this when you want to selectively keep some local edits.
+  --help, -h   Show this help and exit.
+EOF
+}
+
+parseArgs() {
+  for arg in "$@"; do
+    case "$arg" in
+      --ask)
+        askBeforeOverwrite=true
+        ;;
+      --help|-h)
+        showCliUsage
+        exit 0
+        ;;
+      *)
+        printError "Unknown option: $arg"
+        showCliUsage
+        exit 1
+        ;;
+    esac
+  done
 }
 
 # -----------------------------------------------------------------------------
@@ -142,14 +176,21 @@ copyFileWithConfirmation() {
     return 1
   }
 
-  printWarning "File already exists: ${destination}"
-  confirmAction "Overwrite?" || {
-    printInfo "Skipping ${filename}"
+  cmp -s "$source" "$destination" && {
+    printInfo "Already up-to-date: ${filename}"
     return 0
   }
 
+  [[ "$askBeforeOverwrite" == "true" ]] && {
+    printWarning "File already exists: ${destination}"
+    confirmAction "Overwrite?" || {
+      printInfo "Skipping ${filename}"
+      return 0
+    }
+  }
+
   cp "$source" "$destination" && {
-    printSuccess "Copied ${filename}"
+    printSuccess "Updated ${filename}"
     return 0
   }
 
@@ -178,15 +219,22 @@ copyDirWithConfirmation() {
     return 1
   }
 
-  printWarning "Directory already exists: ${destination}"
-  confirmAction "Overwrite?" || {
-    printInfo "Skipping ${dirname}/"
+  diff -rq "$source" "$destination" >/dev/null 2>&1 && {
+    printInfo "Already up-to-date: ${dirname}/"
     return 0
+  }
+
+  [[ "$askBeforeOverwrite" == "true" ]] && {
+    printWarning "Directory already exists: ${destination}"
+    confirmAction "Overwrite?" || {
+      printInfo "Skipping ${dirname}/"
+      return 0
+    }
   }
 
   rm -rf "$destination"
   cp -r "$source" "$destDir/" && {
-    printSuccess "Copied ${dirname}/"
+    printSuccess "Updated ${dirname}/"
     return 0
   }
 
@@ -277,12 +325,13 @@ installHooks() {
   copyFileWithConfirmation "${SCRIPT_DIR}/hooks/.gitignore" "${HOOKS_DIR}/.gitignore"
   copyFileWithConfirmation "${SCRIPT_DIR}/hooks/bun.lock" "${HOOKS_DIR}/bun.lock"
 
-  # Copy hook scripts
+  # Copy hook scripts (skip *.spec.ts test files — they belong to the repo only)
   local scriptCount=0
   for scriptFile in "${SCRIPT_DIR}/hooks/scripts"/*.ts; do
     [[ -f "$scriptFile" ]] || continue
     local filename
     filename=$(basename "$scriptFile")
+    [[ "$filename" == *.spec.ts ]] && continue
     copyFileWithConfirmation "$scriptFile" "${HOOKS_SCRIPTS_DIR}/${filename}"
     ((scriptCount++))
   done
@@ -639,6 +688,7 @@ createDirectoryStructure() {
 }
 
 main() {
+  parseArgs "$@"
   printHeader
 
   # Validate source files
