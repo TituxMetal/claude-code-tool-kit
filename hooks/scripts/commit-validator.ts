@@ -1,4 +1,5 @@
 import { askLlm } from './llm'
+import { validateCommitMessage } from './validators'
 
 const LOG_FILE = '/tmp/commit-validator.log'
 
@@ -7,56 +8,52 @@ const log = async (msg: string) => {
   await Bun.write(LOG_FILE, (await Bun.file(LOG_FILE).text().catch(() => '')) + line)
 }
 
-const SKILL_PATH = `${process.env.HOME}/.claude/skills/git-workflow/SKILL.md`
-const skillContent = await Bun.file(SKILL_PATH).text().catch(() => '')
+// Advisory-only prompt: structural rules are already enforced deterministically
+// by validateCommitMessage() in validators.ts. The LLM never blocks — it only
+// suggests improvements that get logged. If Haiku (or DeepSeek) hallucinates,
+// the hallucination lands in /tmp/commit-validator.log and is harmless.
+const ADVISORY_PROMPT = `You are an advisory reviewer for git commit messages.
 
-const SYSTEM_PROMPT = `You are a strict git commit message validator. Output ONLY raw JSON, no markdown, no code fences, no explanation.
+The structural rules (type/scope/format, lowercase first letter, body presence, no AI signatures) are already enforced before you see the message. DO NOT mention them.
 
-Here are the commit rules from the project's git-workflow skill:
+Your job: flag content quality issues that a human reviewer would catch:
+- Vague descriptions ("fix stuff", "update code", "changes", "tweaks")
+- Body that does not actually list the changed files or describe what changed
+- Description and body contradicting each other
 
-${skillContent}
-
-Strict rules to enforce on every commit message (FAIL on any violation):
-- Type MUST be one of: feat, fix, docs, style, refactor, test, chore, perf, ci, build
-- The first character of the description (the text right after "type(scope): ") MUST be lowercase. Examples:
-  * "feat(api): add user auth" → ok (description starts with lowercase 'a')
-  * "feat(api): Add user auth" → FAIL (description starts with uppercase 'A')
-  * "feat(api): API redesign" → FAIL (description starts with uppercase 'A')
-- A non-empty body MUST exist after the first line, listing the changed files
-- Body MUST NOT contain any of these signatures: "Co-Authored-By", "Generated with", "Signed-off-by", "Claude Code"
-
-Valid outputs (ONLY these two formats, nothing else):
+Output ONLY raw JSON, no markdown, no code fences. Two possible shapes:
 {"ok": true}
-{"ok": false, "reason": "<short specific reason quoting the exact violating text>"}
+{"ok": false, "note": "<short specific suggestion under 120 chars>"}
 
-When you flag a violation, quote the EXACT character sequence you see. Do not paraphrase.`
+If in doubt, return {"ok": true}. False positives are worse than missed issues.`
 
 const extractMessage = async (cmd: string): Promise<string | null> => {
-  // -F file
   const fileMatch = cmd.match(/-F\s+(\S+)/)
   if (fileMatch && fileMatch[1]) {
     return Bun.file(fileMatch[1]).text().catch(() => null)
   }
 
-  // heredoc form: -m "$(cat <<'EOF' ... EOF)"
   const heredocMatch = cmd.match(/<<\s*['"]?(\w+)['"]?\s*\n([\s\S]*?)\n\1\b/)
-  if (heredocMatch && heredocMatch[2]) {
-    return heredocMatch[2]
-  }
+  if (heredocMatch && heredocMatch[2]) return heredocMatch[2]
 
-  // -m "..." with double quotes
   const doubleMatch = cmd.match(/-m\s+"([\s\S]*?)"(?:\s|$)/)
-  if (doubleMatch && doubleMatch[1]) {
-    return doubleMatch[1]
-  }
+  if (doubleMatch && doubleMatch[1]) return doubleMatch[1]
 
-  // -m '...' with single quotes
   const singleMatch = cmd.match(/-m\s+'([\s\S]*?)'(?:\s|$)/)
-  if (singleMatch && singleMatch[1]) {
-    return singleMatch[1]
-  }
+  if (singleMatch && singleMatch[1]) return singleMatch[1]
 
   return null
+}
+
+const deny = (reason: string) => {
+  console.log(JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: 'PreToolUse',
+      permissionDecision: 'deny',
+      permissionDecisionReason: reason,
+    },
+  }))
+  process.exit(0)
 }
 
 const input = await Bun.stdin.json() as {
@@ -64,22 +61,13 @@ const input = await Bun.stdin.json() as {
   tool_input: { command?: string }
 }
 
-// Fast path: not a Bash tool or no command
-if (input.tool_name !== 'Bash' || !input.tool_input?.command) {
-  process.exit(0)
-}
+if (input.tool_name !== 'Bash' || !input.tool_input?.command) process.exit(0)
 
 const cmd = input.tool_input.command
+if (!cmd.includes('git commit') && !cmd.includes('git -c')) process.exit(0)
 
-// Fast path: not a git commit command
-if (!cmd.includes('git commit') && !cmd.includes('git -c')) {
-  process.exit(0)
-}
-
-// Fast path: skip all amends — the original commit was already validated
-if (cmd.includes('--amend')) {
-  process.exit(0)
-}
+// Skip amends — the original commit was already validated.
+if (cmd.includes('--amend')) process.exit(0)
 
 const message = await extractMessage(cmd)
 
@@ -91,35 +79,32 @@ if (!message) {
   process.exit(0)
 }
 
-const result = await askLlm(SYSTEM_PROMPT, `Validate this commit message:\n\n${message}`, 256, '{"')
+// === Layer 1: deterministic regex (BLOCKING) ===
+const structural = validateCommitMessage(message)
+if (!structural.ok) {
+  await log(`[regex] DENY: ${structural.reason}`)
+  deny(structural.reason)
+}
 
-await log(`LLM response: ${result}`)
+await log('[regex] PASS')
 
+// === Layer 2: LLM advisory (NEVER blocks) ===
+const result = await askLlm(ADVISORY_PROMPT, `Review this commit message:\n\n${message}`, 256, '{"')
 if (!result) {
-  await log('LLM unavailable, allowing')
+  await log('[advisory] LLM unavailable, allowing')
   process.exit(0)
 }
 
 try {
   const cleaned = result.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-  const parsed = JSON.parse(cleaned) as { ok: boolean, reason?: string }
-
-  await log(`Parsed: ok=${parsed.ok}, reason=${parsed.reason}`)
-
+  const parsed = JSON.parse(cleaned) as { ok: boolean, note?: string }
   if (parsed.ok) {
+    await log('[advisory] OK')
     process.exit(0)
   }
-
-  const output = {
-    hookSpecificOutput: {
-      hookEventName: 'PreToolUse',
-      permissionDecision: 'deny',
-      permissionDecisionReason: parsed.reason ?? 'Commit message does not follow conventions',
-    },
-  }
-  console.log(JSON.stringify(output))
+  await log(`[advisory] NOTE (non-blocking): ${parsed.note ?? '(no note)'}`)
   process.exit(0)
 } catch (e) {
-  await log(`Parse error: ${e}`)
+  await log(`[advisory] Parse error (non-blocking): ${e}`)
   process.exit(0)
 }
